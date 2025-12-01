@@ -66,9 +66,10 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.9);
+            background: rgba(0, 0, 0, 0.95);
             z-index: 1000;
             padding: 20px;
+            overflow-y: auto;
         }
 
         .mobile-menu.active {
@@ -81,6 +82,7 @@
                 display: block;
                 overflow-x: auto;
                 white-space: nowrap;
+                -webkit-overflow-scrolling: touch;
             }
 
             .mobile-stack {
@@ -102,6 +104,62 @@
             .mobile-mb-4 {
                 margin-bottom: 1rem;
             }
+
+            .mobile-grid-1 {
+                grid-template-columns: 1fr !important;
+            }
+        }
+
+        /* Animation for charts */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        /* Loading animation */
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #4f46e5;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1f2937;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #4b5563;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
         }
     </style>
 </head>
@@ -152,10 +210,21 @@
                     </button>
                 </div>
 
-                <!-- Mobile Menu Button -->
-                <button id="mobile-menu-button" class="md:hidden p-2 rounded-lg bg-gray-700 text-white">
-                    <i data-lucide="menu" class="w-6 h-6"></i>
-                </button>
+                <!-- Right side buttons -->
+                <div class="flex items-center space-x-2">
+                    <button onclick="exportData()"
+                        class="hidden md:flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-700 rounded-lg transition">
+                        <i data-lucide="download" class="w-4 h-4"></i>
+                        <span>Export</span>
+                    </button>
+                    <button onclick="toggleDarkMode()" class="p-2 rounded-lg hover:bg-gray-700 transition">
+                        <i data-lucide="moon" class="w-5 h-5"></i>
+                    </button>
+                    <!-- Mobile Menu Button -->
+                    <button id="mobile-menu-button" class="md:hidden p-2 rounded-lg bg-gray-700 text-white">
+                        <i data-lucide="menu" class="w-6 h-6"></i>
+                    </button>
+                </div>
             </div>
         </div>
     </nav>
@@ -199,18 +268,61 @@
                 <i data-lucide="brain" class="w-5 h-5 mr-3"></i>
                 AI Education
             </button>
+            <div class="pt-4 border-t border-gray-700">
+                <button onclick="exportData()"
+                    class="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-700 transition duration-150 text-lg font-medium flex items-center">
+                    <i data-lucide="download" class="w-5 h-5 mr-3"></i>
+                    Export Data
+                </button>
+                <button onclick="toggleDarkMode()"
+                    class="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-700 transition duration-150 text-lg font-medium flex items-center">
+                    <i data-lucide="moon" class="w-5 h-5 mr-3"></i>
+                    Toggle Theme
+                </button>
+                <button onclick="showStatistics()"
+                    class="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-700 transition duration-150 text-lg font-medium flex items-center">
+                    <i data-lucide="bar-chart-3" class="w-5 h-5 mr-3"></i>
+                    Statistics
+                </button>
+            </div>
         </div>
     </div>
 
     <!-- Main Content -->
     <main class="pt-20 pb-8 px-4 md:px-8">
-        <h1 class="text-3xl font-bold mb-6 text-gray-200" id="page-title">Loading Dashboard...</h1>
-        <div id="view-content" class="min-h-[500px]">
-            <div class="flex justify-center items-center h-full">
-                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-3xl font-bold text-gray-200" id="page-title">Dashboard Overview</h1>
+            <div class="flex items-center space-x-4">
+                <div class="text-sm text-gray-400 hidden md:block">
+                    <span id="last-updated">Last updated: Just now</span>
+                </div>
+                <button onclick="refreshData()" class="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 transition"
+                    title="Refresh Data">
+                    <i data-lucide="refresh-cw" class="w-5 h-5"></i>
+                </button>
             </div>
         </div>
+        <div id="view-content" class="min-h-[500px] animate-fade-in">
+            <!-- Content will be loaded here -->
+        </div>
     </main>
+
+    <!-- Statistics Modal -->
+    <div id="statistics-modal"
+        class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 z-50 flex justify-center items-center p-4">
+        <div
+            class="bg-gray-800 p-6 rounded-xl shadow-2xl main-shadow max-w-2xl w-full border border-gray-700 max-h-[80vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-indigo-400">System Statistics</h3>
+                <button onclick="closeStatisticsModal()" class="p-2 rounded-lg hover:bg-gray-700">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div id="statistics-content" class="space-y-6">
+                <!-- Statistics will be loaded here -->
+            </div>
+        </div>
+    </div>
 
     <!-- Global Message Modal -->
     <div id="message-modal"
@@ -227,8 +339,18 @@
         </div>
     </div>
 
+    <!-- Loading Overlay -->
+    <div id="loading-overlay"
+        class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 z-50 flex flex-col justify-center items-center">
+        <div class="loading-spinner mb-4"></div>
+        <p class="text-gray-300" id="loading-text">Loading...</p>
+    </div>
+
     <script>
-        // App state
+        // ============================================
+        // GLOBAL STATE & INITIALIZATION
+        // ============================================
+
         let appState = {
             currentView: 'dashboard',
             stats: {
@@ -250,7 +372,22 @@
                 midline: [],
                 endline: [],
                 studentProgress: []
-            }
+            },
+            aiEducation: {
+                checklist: [
+                    { id: 1, text: 'Staff training completed', completed: false },
+                    { id: 2, text: 'Parent consent obtained', completed: false },
+                    { id: 3, text: 'Ethical guidelines distributed', completed: false },
+                    { id: 4, text: 'Pilot program scheduled', completed: false }
+                ],
+                metrics: {
+                    studentEngagement: 85,
+                    teacherConfidence: 92,
+                    parentSatisfaction: 78,
+                    learningAcceleration: 45
+                }
+            },
+            charts: {}
         };
 
         // Initialize from localStorage
@@ -263,32 +400,27 @@
                 appState.assessments = parsedState.assessments || {
                     baseline: [], midline: [], endline: [], studentProgress: []
                 };
+                appState.aiEducation = parsedState.aiEducation || {
+                    checklist: appState.aiEducation.checklist,
+                    metrics: appState.aiEducation.metrics
+                };
                 updateStats();
             } else {
                 loadInitialData();
             }
+            updateLastUpdated();
         }
 
         function saveAppState() {
             const stateToSave = {
                 students: appState.students,
                 staff: appState.staff,
-                assessments: appState.assessments
+                assessments: appState.assessments,
+                aiEducation: appState.aiEducation
             };
             localStorage.setItem('eduai-dashboard-data', JSON.stringify(stateToSave));
             updateStats();
-        }
-
-        function resetData() {
-            showModal("Reset Data", "Are you sure you want to reset all data? This cannot be undone.", true)
-                .then(confirmed => {
-                    if (confirmed) {
-                        localStorage.removeItem('eduai-dashboard-data');
-                        initializeAppState();
-                        loadData();
-                        showModal("Success", "All data has been reset to initial values.");
-                    }
-                });
+            updateLastUpdated();
         }
 
         function updateStats() {
@@ -297,47 +429,75 @@
 
             if (appState.students.length > 0) {
                 const totalAttendance = appState.students.reduce((sum, student) => sum + (student.attendance || 0), 0);
-                appState.stats.attendance_rate = totalAttendance / appState.students.length;
+                appState.stats.attendance_rate = Math.round(totalAttendance / appState.students.length);
 
                 const totalScores = appState.students.reduce((sum, student) => sum + (student.overall_score || 0), 0);
-                appState.stats.academic_performance = totalScores / appState.students.length;
+                appState.stats.academic_performance = Math.round(totalScores / appState.students.length);
             }
             appState.stats.last_updated = new Date().toISOString();
         }
 
+        function updateLastUpdated() {
+            const element = document.getElementById('last-updated');
+            if (element) {
+                const now = new Date();
+                element.textContent = `Last updated: ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+            }
+        }
+
         function loadInitialData() {
+            // Students with more realistic data
             appState.students = [
-                { id: 1, name: "Emma Johnson", grade: 10, overall_score: 92, attendance: 96 },
-                { id: 2, name: "Noah Williams", grade: 9, overall_score: 85, attendance: 92 },
-                { id: 3, name: "Olivia Brown", grade: 11, overall_score: 78, attendance: 88 },
-                { id: 4, name: "Liam Jones", grade: 10, overall_score: 91, attendance: 95 },
-                { id: 5, name: "Ava Garcia", grade: 9, overall_score: 87, attendance: 90 }
+                { id: 1, name: "Emma Johnson", grade: 10, overall_score: 92, attendance: 96, email: "emma.j@school.edu" },
+                { id: 2, name: "Noah Williams", grade: 9, overall_score: 85, attendance: 92, email: "noah.w@school.edu" },
+                { id: 3, name: "Olivia Brown", grade: 11, overall_score: 78, attendance: 88, email: "olivia.b@school.edu" },
+                { id: 4, name: "Liam Jones", grade: 10, overall_score: 91, attendance: 95, email: "liam.j@school.edu" },
+                { id: 5, name: "Ava Garcia", grade: 9, overall_score: 87, attendance: 90, email: "ava.g@school.edu" }
             ];
 
+            // Staff with more details
             appState.staff = [
-                { id: 1, name: "Dr. Sarah Mitchell", role: "Math Teacher", department: "Mathematics" },
-                { id: 2, name: "Mr. James Wilson", role: "Science Teacher", department: "Science" },
-                { id: 3, name: "Ms. Emily Chen", role: "English Teacher", department: "Language Arts" },
-                { id: 4, name: "Dr. Robert Taylor", role: "History Teacher", department: "Social Studies" },
-                { id: 5, name: "Mrs. Lisa Anderson", role: "Art Teacher", department: "Fine Arts" }
+                { id: 1, name: "Dr. Sarah Mitchell", role: "Math Teacher", department: "Mathematics", email: "s.mitchell@school.edu", phone: "555-0101" },
+                { id: 2, name: "Mr. James Wilson", role: "Science Teacher", department: "Science", email: "j.wilson@school.edu", phone: "555-0102" },
+                { id: 3, name: "Ms. Emily Chen", role: "English Teacher", department: "Language Arts", email: "e.chen@school.edu", phone: "555-0103" },
+                { id: 4, name: "Dr. Robert Taylor", role: "History Teacher", department: "Social Studies", email: "r.taylor@school.edu", phone: "555-0104" },
+                { id: 5, name: "Mrs. Lisa Anderson", role: "Art Teacher", department: "Fine Arts", email: "l.anderson@school.edu", phone: "555-0105" }
             ];
 
-            appState.assessments.studentProgress = [
-                { id: 1, name: "Emma Johnson", grade: 10, baseline_score: 85, midline_score: 89, endline_score: 92 },
-                { id: 2, name: "Noah Williams", grade: 9, baseline_score: 78, midline_score: 82, endline_score: 85 },
-                { id: 3, name: "Olivia Brown", grade: 11, baseline_score: 72, midline_score: 75, endline_score: 78 },
-                { id: 4, name: "Liam Jones", grade: 10, baseline_score: 88, midline_score: 90, endline_score: 91 },
-                { id: 5, name: "Ava Garcia", grade: 9, baseline_score: 80, midline_score: 84, endline_score: 87 }
-            ];
+            // Generate progress data with more variety
+            appState.assessments.studentProgress = appState.students.map((student, index) => {
+                const baseline = Math.floor(Math.random() * 30) + 50;
+                const midline = Math.min(baseline + Math.floor(Math.random() * 20), 95);
+                const endline = Math.min(midline + Math.floor(Math.random() * 15), 100);
+
+                return {
+                    id: student.id,
+                    name: student.name,
+                    grade: student.grade,
+                    baseline_score: baseline,
+                    midline_score: midline,
+                    endline_score: endline,
+                    improvement: endline - baseline
+                };
+            });
 
             updateStats();
             saveAppState();
         }
 
-        const viewContent = document.getElementById('view-content');
-        const pageTitle = document.getElementById('page-title');
+        // ============================================
+        // UI UTILITIES
+        // ============================================
 
-        // Modal functions
+        function showLoading(message = 'Loading...') {
+            document.getElementById('loading-overlay').classList.remove('hidden');
+            document.getElementById('loading-text').textContent = message;
+        }
+
+        function hideLoading() {
+            document.getElementById('loading-overlay').classList.add('hidden');
+        }
+
         let resolveModalPromise = null;
 
         function showModal(title, body, isConfirm = false) {
@@ -373,7 +533,10 @@
             }
         }
 
-        // Mobile menu handling
+        // ============================================
+        // MOBILE MENU
+        // ============================================
+
         function setupMobileMenu() {
             const mobileMenuButton = document.getElementById('mobile-menu-button');
             const closeMobileMenuButton = document.getElementById('close-mobile-menu');
@@ -387,113 +550,28 @@
                 mobileMenu.classList.remove('active');
             });
 
-            // Close mobile menu when clicking on a nav item
             document.querySelectorAll('#mobile-menu .nav-item').forEach(item => {
                 item.addEventListener('click', () => {
                     mobileMenu.classList.remove('active');
                 });
             });
+
+            // Close on escape key
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    mobileMenu.classList.remove('active');
+                }
+            });
         }
 
-        // Load data for current view
-        async function loadData() {
-            viewContent.innerHTML = '<div class="flex justify-center items-center h-full min-h-[500px]"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div></div>';
+        // ============================================
+        // VIEW MANAGEMENT
+        // ============================================
 
-            switch (appState.currentView) {
-                case 'dashboard':
-                    appState.progress.overview = await fetchMockData('/progress/overview');
-                    appState.progress.chart = await fetchMockData('/progress/chart');
-                    break;
-                case 'students':
-                case 'staff':
-                    break;
-                case 'progress':
-                    appState.progress.subjects = await fetchMockData('/progress/subjects');
-                    appState.progress.chart = await fetchMockData('/progress/chart');
-                    appState.progress.overview = await fetchMockData('/progress/overview');
-                    break;
-                case 'assessments':
-                    appState.assessments.baseline = await fetchMockData('/assessments/baseline');
-                    appState.assessments.midline = await fetchMockData('/assessments/midline');
-                    appState.assessments.endline = await fetchMockData('/assessments/endline');
-                    break;
-                case 'ai-education':
-                    break;
-            }
-            renderApp();
-        }
-
-        async function fetchMockData(endpoint) {
-            await new Promise(resolve => setTimeout(resolve, 300));
-
-            switch (endpoint) {
-                case '/progress/overview':
-                    return {
-                        average_grade: 78.5,
-                        completion_rate: 92.3,
-                        top_performer: appState.students.length > 0 ?
-                            appState.students.reduce((prev, current) =>
-                                (prev.overall_score > current.overall_score) ? prev : current).name : "N/A",
-                        improvement_rate: 12.7
-                    };
-                case '/progress/chart':
-                    return {
-                        labels: ['Math', 'Science', 'English', 'History', 'Art'],
-                        datasets: [{
-                            label: 'Average Score',
-                            data: [85, 78, 82, 75, 88],
-                            backgroundColor: [
-                                'rgba(99, 102, 241, 0.7)',
-                                'rgba(139, 92, 246, 0.7)',
-                                'rgba(168, 85, 247, 0.7)',
-                                'rgba(217, 70, 239, 0.7)',
-                                'rgba(236, 72, 153, 0.7)'
-                            ],
-                            borderColor: [
-                                'rgb(99, 102, 241)',
-                                'rgb(139, 92, 246)',
-                                'rgb(168, 85, 247)',
-                                'rgb(217, 70, 239)',
-                                'rgb(236, 72, 153)'
-                            ],
-                            borderWidth: 1
-                        }]
-                    };
-                case '/progress/subjects':
-                    return [
-                        { name: "Mathematics", teacher: "Dr. Sarah Mitchell", average: 85.2, improvement: 8.5 },
-                        { name: "Science", teacher: "Mr. James Wilson", average: 78.7, improvement: 12.3 },
-                        { name: "English", teacher: "Ms. Emily Chen", average: 82.1, improvement: 5.2 },
-                        { name: "History", teacher: "Dr. Robert Taylor", average: 75.8, improvement: 3.7 },
-                        { name: "Art", teacher: "Mrs. Lisa Anderson", average: 88.4, improvement: 15.1 }
-                    ];
-                case '/assessments/baseline':
-                    return appState.students.map(student => ({
-                        id: student.id,
-                        name: student.name,
-                        completed: Math.random() > 0.2
-                    }));
-                case '/assessments/midline':
-                    return appState.students.map(student => ({
-                        id: student.id,
-                        name: student.name,
-                        completed: Math.random() > 0.3
-                    }));
-                case '/assessments/endline':
-                    return appState.students.map(student => ({
-                        id: student.id,
-                        name: student.name,
-                        completed: Math.random() > 0.15
-                    }));
-                default:
-                    return {};
-            }
-        }
-
-        function changeView(newView) {
+        async function changeView(newView) {
             appState.currentView = newView;
 
-            // Update desktop navigation active state
+            // Update navigation active state
             document.querySelectorAll('.nav-item').forEach(btn => {
                 btn.classList.remove('bg-indigo-700', 'text-white', 'main-shadow');
             });
@@ -511,16 +589,19 @@
                 'ai-education': 'AI in Early Education'
             };
 
-            pageTitle.textContent = titles[newView] || newView.charAt(0).toUpperCase() + newView.slice(1);
-            loadData();
+            document.getElementById('page-title').textContent = titles[newView] || newView.charAt(0).toUpperCase() + newView.slice(1);
+
+            showLoading();
+            await loadData();
+            hideLoading();
         }
 
-        function renderApp() {
-            viewContent.innerHTML = '';
+        async function loadData() {
+            const viewContent = document.getElementById('view-content');
 
             switch (appState.currentView) {
                 case 'dashboard':
-                    renderDashboard();
+                    await loadDashboardData();
                     break;
                 case 'students':
                     renderStudents();
@@ -529,290 +610,1323 @@
                     renderStaff();
                     break;
                 case 'progress':
-                    renderProgress();
+                    await loadProgressData();
                     break;
                 case 'assessments':
-                    renderAssessments();
+                    await loadAssessmentsData();
                     break;
                 case 'ai-education':
                     renderAIEducation();
                     break;
             }
+
             lucide.createIcons();
         }
 
-        // View rendering functions
-        function renderCard(title, value, icon, color) {
-            return `
-                <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700 transition duration-300 hover:scale-[1.01] hover:shadow-indigo-900/50">
-                    <div class="flex items-center justify-between">
-                        <div class="text-sm font-medium text-gray-400">${title}</div>
-                        <i data-lucide="${icon}" class="w-6 h-6 text-${color}-400"></i>
-                    </div>
-                    <div class="mt-4 text-3xl font-extrabold text-white">${value}</div>
-                </div>
-            `;
+        async function refreshData() {
+            showLoading('Refreshing data...');
+            // Simulate API call delay
+            await new Promise(resolve => setTimeout(resolve, 800));
+
+            // Refresh stats
+            updateStats();
+
+            // Re-render current view
+            await loadData();
+            hideLoading();
+
+            showModal('Success', 'Data refreshed successfully');
+        }
+
+        // ============================================
+        // DASHBOARD VIEW
+        // ============================================
+
+        async function loadDashboardData() {
+            const stats = appState.stats;
+
+            // Generate mock overview data
+            appState.progress.overview = {
+                average_grade: stats.academic_performance,
+                completion_rate: 92.3,
+                top_performer: appState.students.length > 0 ?
+                    appState.students.reduce((prev, current) =>
+                        (prev.overall_score > current.overall_score) ? prev : current).name : "N/A",
+                improvement_rate: 12.7
+            };
+
+            // Generate chart data
+            appState.progress.chart = {
+                labels: ['Math', 'Science', 'English', 'History', 'Art'],
+                datasets: [{
+                    label: 'Average Score',
+                    data: [85, 78, 82, 75, 88],
+                    backgroundColor: [
+                        'rgba(99, 102, 241, 0.7)',
+                        'rgba(139, 92, 246, 0.7)',
+                        'rgba(168, 85, 247, 0.7)',
+                        'rgba(217, 70, 239, 0.7)',
+                        'rgba(236, 72, 153, 0.7)'
+                    ],
+                    borderColor: [
+                        'rgb(99, 102, 241)',
+                        'rgb(139, 92, 246)',
+                        'rgb(168, 85, 247)',
+                        'rgb(217, 70, 239)',
+                        'rgb(236, 72, 153)'
+                    ],
+                    borderWidth: 1
+                }]
+            };
+
+            renderDashboard();
         }
 
         function renderDashboard() {
-            const stats = appState.stats || {};
-            const overview = appState.progress.overview || {};
+            const stats = appState.stats;
+            const overview = appState.progress.overview;
             const chartData = appState.progress.chart;
 
+            const viewContent = document.getElementById('view-content');
             viewContent.innerHTML = `
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    ${renderCard("Total Students", stats.total_students || 0, "users", "indigo")}
-                    ${renderCard("Total Staff", stats.total_staff || 0, "briefcase", "purple")}
-                    ${renderCard("Attendance Rate", (stats.attendance_rate || 0).toFixed(1) + "%", "check-circle", "green")}
-                    ${renderCard("Academic Performance", (stats.academic_performance || 0).toFixed(1) + "%", "bar-chart-2", "yellow")}
+                    <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700 transition duration-300 hover:scale-[1.01] hover:shadow-indigo-900/50">
+                        <div class="flex items-center justify-between">
+                            <div class="text-sm font-medium text-gray-400">Total Students</div>
+                            <i data-lucide="users" class="w-6 h-6 text-indigo-400"></i>
+                        </div>
+                        <div class="mt-4 text-3xl font-extrabold text-white">${stats.total_students}</div>
+                        <div class="mt-2 text-sm text-gray-400">${appState.students.filter(s => s.attendance > 90).length} with >90% attendance</div>
+                    </div>
+                    
+                    <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700 transition duration-300 hover:scale-[1.01] hover:shadow-purple-900/50">
+                        <div class="flex items-center justify-between">
+                            <div class="text-sm font-medium text-gray-400">Total Staff</div>
+                            <i data-lucide="briefcase" class="w-6 h-6 text-purple-400"></i>
+                        </div>
+                        <div class="mt-4 text-3xl font-extrabold text-white">${stats.total_staff}</div>
+                        <div class="mt-2 text-sm text-gray-400">Across ${new Set(appState.staff.map(s => s.department)).size} departments</div>
+                    </div>
+                    
+                    <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700 transition duration-300 hover:scale-[1.01] hover:shadow-green-900/50">
+                        <div class="flex items-center justify-between">
+                            <div class="text-sm font-medium text-gray-400">Attendance Rate</div>
+                            <i data-lucide="check-circle" class="w-6 h-6 text-green-400"></i>
+                        </div>
+                        <div class="mt-4 text-3xl font-extrabold text-white">${stats.attendance_rate}%</div>
+                        <div class="mt-2">
+                            <div class="flex justify-between text-xs text-gray-400 mb-1">
+                                <span>Overall</span>
+                                <span>${stats.attendance_rate}%</span>
+                            </div>
+                            <div class="progress-bar bg-gray-700">
+                                <div class="h-full bg-green-500" style="width: ${stats.attendance_rate}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700 transition duration-300 hover:scale-[1.01] hover:shadow-yellow-900/50">
+                        <div class="flex items-center justify-between">
+                            <div class="text-sm font-medium text-gray-400">Academic Performance</div>
+                            <i data-lucide="bar-chart-2" class="w-6 h-6 text-yellow-400"></i>
+                        </div>
+                        <div class="mt-4 text-3xl font-extrabold text-white">${stats.academic_performance}%</div>
+                        <div class="mt-2">
+                            <div class="flex justify-between text-xs text-gray-400 mb-1">
+                                <span>Average Score</span>
+                                <span>${stats.academic_performance}%</span>
+                            </div>
+                            <div class="progress-bar bg-gray-700">
+                                <div class="h-full bg-yellow-500" style="width: ${stats.academic_performance}%"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
                     <div class="lg:col-span-2 bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700">
-                        <h3 class="text-xl font-semibold mb-4 text-gray-200">Subject Average Scores</h3>
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-xl font-semibold text-gray-200">Subject Performance</h3>
+                            <select id="chart-type-selector" onchange="changeChartType(this.value)" 
+                                class="bg-gray-700 border border-gray-600 text-gray-300 rounded-lg px-3 py-1 text-sm">
+                                <option value="bar">Bar Chart</option>
+                                <option value="line">Line Chart</option>
+                                <option value="pie">Pie Chart</option>
+                            </select>
+                        </div>
                         <div class="h-80">
-                            <canvas id="average-scores-chart"></canvas>
+                            <canvas id="dashboard-chart"></canvas>
                         </div>
                     </div>
                     <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700">
-                        <h3 class="text-xl font-semibold mb-4 text-gray-200">AI Insights Overview</h3>
-                        <div class="space-y-4">
-                            <div class="flex items-center space-x-4 p-3 bg-gray-700/50 rounded-lg">
-                                <div class="w-10 h-10 flex items-center justify-center bg-indigo-500-20 rounded-full">
-                                    <i data-lucide="zap" class="w-5 h-5 text-indigo-400"></i>
+                        <h3 class="text-xl font-semibold mb-4 text-gray-200">Quick Actions</h3>
+                        <div class="space-y-3">
+                            <button onclick="addQuickStudent()" class="w-full flex items-center justify-between p-3 bg-gray-700/50 rounded-lg hover:bg-gray-700 transition">
+                                <div class="flex items-center">
+                                    <i data-lucide="user-plus" class="w-5 h-5 text-indigo-400 mr-3"></i>
+                                    <span>Add New Student</span>
                                 </div>
-                                <div>
-                                    <div class="text-lg font-bold text-indigo-300">${(overview.average_grade || 0).toFixed(1)}%</div>
-                                    <div class="text-sm text-gray-400">Average Grade</div>
+                                <i data-lucide="plus" class="w-4 h-4"></i>
+                            </button>
+                            <button onclick="generateReport()" class="w-full flex items-center justify-between p-3 bg-gray-700/50 rounded-lg hover:bg-gray-700 transition">
+                                <div class="flex items-center">
+                                    <i data-lucide="file-text" class="w-5 h-5 text-green-400 mr-3"></i>
+                                    <span>Generate Report</span>
                                 </div>
-                            </div>
-                            <div class="flex items-center space-x-4 p-3 bg-gray-700/50 rounded-lg">
-                                <div class="w-10 h-10 flex items-center justify-center bg-green-500-20 rounded-full">
-                                    <i data-lucide="zap" class="w-5 h-5 text-green-400"></i>
+                                <i data-lucide="download" class="w-4 h-4"></i>
+                            </button>
+                            <button onclick="showStatistics()" class="w-full flex items-center justify-between p-3 bg-gray-700/50 rounded-lg hover:bg-gray-700 transition">
+                                <div class="flex items-center">
+                                    <i data-lucide="bar-chart-3" class="w-5 h-5 text-purple-400 mr-3"></i>
+                                    <span>View Statistics</span>
                                 </div>
-                                <div>
-                                    <div class="text-lg font-bold text-green-300">${(overview.completion_rate || 0).toFixed(1)}%</div>
-                                    <div class="text-sm text-gray-400">Completion Rate</div>
+                                <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                            </button>
+                            <button onclick="changeView('ai-education')" class="w-full flex items-center justify-between p-3 bg-gray-700/50 rounded-lg hover:bg-gray-700 transition">
+                                <div class="flex items-center">
+                                    <i data-lucide="brain" class="w-5 h-5 text-pink-400 mr-3"></i>
+                                    <span>AI Education Guide</span>
                                 </div>
-                            </div>
-                            <div class="flex items-center space-x-4 p-3 bg-gray-700/50 rounded-lg">
-                                <div class="w-10 h-10 flex items-center justify-center bg-yellow-500-20 rounded-full">
-                                    <i data-lucide="zap" class="w-5 h-5 text-yellow-400"></i>
+                                <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="mt-6 p-4 bg-indigo-900/20 rounded-lg">
+                            <h4 class="font-semibold text-indigo-300 mb-2">Recent Activity</h4>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex items-center text-gray-400">
+                                    <i data-lucide="check-circle" class="w-3 h-3 text-green-400 mr-2"></i>
+                                    <span>System updated 5 minutes ago</span>
                                 </div>
-                                <div>
-                                    <div class="text-lg font-bold text-yellow-300">${overview.top_performer || "N/A"}</div>
-                                    <div class="text-sm text-gray-400">Top Performer</div>
+                                <div class="flex items-center text-gray-400">
+                                    <i data-lucide="user" class="w-3 h-3 text-blue-400 mr-2"></i>
+                                    <span>${appState.students.length} students active</span>
+                                </div>
+                                <div class="flex items-center text-gray-400">
+                                    <i data-lucide="trending-up" class="w-3 h-3 text-yellow-400 mr-2"></i>
+                                    <span>Performance trending upward</span>
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700">
+                    <h3 class="text-xl font-semibold mb-4 text-gray-200">Top Performers</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        ${appState.students
+                    .sort((a, b) => b.overall_score - a.overall_score)
+                    .slice(0, 3)
+                    .map((student, index) => `
+                                <div class="flex items-center p-4 bg-gray-700/50 rounded-lg">
+                                    <div class="w-12 h-12 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg mr-4">
+                                        ${index + 1}
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="font-semibold text-white">${student.name}</div>
+                                        <div class="text-sm text-gray-400">Grade ${student.grade}</div>
+                                        <div class="text-sm text-green-400">Score: ${student.overall_score}%</div>
+                                    </div>
+                                    <button onclick="viewStudentDetail(${student.id})" class="p-2 hover:bg-gray-600 rounded-lg transition">
+                                        <i data-lucide="eye" class="w-4 h-4"></i>
+                                    </button>
+                                </div>
+                            `).join('')}
                     </div>
                 </div>
             `;
 
             if (chartData) {
-                initializeChart(chartData);
+                initializeDashboardChart(chartData);
             }
+
+            lucide.createIcons();
         }
 
+        // ============================================
+        // STUDENTS VIEW
+        // ============================================
+
         function renderStudents() {
-            const students = appState.students || [];
+            const students = appState.students;
+            const viewContent = document.getElementById('view-content');
 
             viewContent.innerHTML = `
-                <div class="flex justify-between items-center mb-6">
-                    <p class="text-sm text-gray-400">${students.length} students currently enrolled.</p>
-                    <button onclick="showAddForm('student')" class="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-white gradient-main rounded-xl hover:opacity-90 transition main-shadow">
-                        <i data-lucide="plus" class="w-4 h-4"></i>
-                        <span>Add Student</span>
-                    </button>
+                <div class="mb-6">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <h2 class="text-xl font-semibold text-gray-200 mb-2">Student Management</h2>
+                            <p class="text-sm text-gray-400">Manage student records, grades, and attendance</p>
+                        </div>
+                        <div class="flex space-x-3">
+                            <button onclick="showAddStudentForm()" 
+                                class="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-white gradient-main rounded-xl hover:opacity-90 transition main-shadow">
+                                <i data-lucide="plus" class="w-4 h-4"></i>
+                                <span>Add Student</span>
+                            </button>
+                            <button onclick="exportStudents()" 
+                                class="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gray-300 bg-gray-800 rounded-xl hover:bg-gray-700 transition">
+                                <i data-lucide="download" class="w-4 h-4"></i>
+                                <span>Export</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                ${renderAddStudentForm()}
-                <div class="bg-gray-800 rounded-xl shadow-lg overflow-hidden border border-gray-700 responsive-table">
-                    <table class="min-w-full divide-y divide-gray-700">
-                        <thead class="bg-gray-700">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">ID</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Name</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Grade</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Score</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Attendance</th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-700">
-                            ${students.length > 0 ? students.map(s => `
-                                <tr class="hover:bg-gray-700/50 transition">
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-300">${s.id}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-200">${s.name}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-400">${s.grade}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-white font-bold">${s.overall_score}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-green-400">${s.attendance}%</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <button onclick="handleDelete('student', ${s.id})" class="text-red-400 hover:text-red-500 transition p-1 rounded-full hover:bg-gray-700" title="Delete Student">
-                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                            `).join('') : `
+
+                <!-- Add Student Form -->
+                <div id="add-student-form" class="hidden bg-gray-800 p-6 rounded-xl shadow-lg mb-8 border border-gray-700">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-semibold text-indigo-400">Add New Student</h3>
+                        <button onclick="hideAddStudentForm()" class="p-2 hover:bg-gray-700 rounded-lg">
+                            <i data-lucide="x" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                    <form id="student-form" onsubmit="handleAddStudent(event)" class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-1">Full Name *</label>
+                                <input type="text" id="student-name" required
+                                    class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-1">Grade *</label>
+                                <select id="student-grade" required
+                                    class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+                                    <option value="">Select Grade</option>
+                                    ${Array.from({ length: 12 }, (_, i) => i + 1).map(grade => `
+                                        <option value="${grade}">Grade ${grade}</option>
+                                    `).join('')}
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-1">Email</label>
+                                <input type="email" id="student-email"
+                                    class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-1">Overall Score (0-100)</label>
+                                <input type="number" id="student-score" min="0" max="100"
+                                    class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-1">Attendance (%)</label>
+                                <input type="number" id="student-attendance" min="0" max="100"
+                                    class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+                            </div>
+                        </div>
+                        <div class="flex justify-end space-x-3 pt-4">
+                            <button type="button" onclick="hideAddStudentForm()"
+                                class="px-4 py-2 text-sm font-medium text-gray-300 bg-gray-700 rounded-lg hover:bg-gray-600 transition">
+                                Cancel
+                            </button>
+                            <button type="submit"
+                                class="px-4 py-2 text-sm font-medium text-white gradient-main rounded-lg hover:opacity-90 transition">
+                                Add Student
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Filters and Search -->
+                <div class="bg-gray-800 p-4 rounded-xl shadow-lg mb-6 border border-gray-700">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div class="flex-1">
+                            <div class="relative">
+                                <i data-lucide="search" class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"></i>
+                                <input type="text" id="student-search" placeholder="Search students..." 
+                                    oninput="filterStudents()"
+                                    class="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+                            </div>
+                        </div>
+                        <div class="flex space-x-3">
+                            <select id="grade-filter" onchange="filterStudents()"
+                                class="px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+                                <option value="">All Grades</option>
+                                ${Array.from({ length: 12 }, (_, i) => i + 1).map(grade => `
+                                    <option value="${grade}">Grade ${grade}</option>
+                                `).join('')}
+                            </select>
+                            <select id="sort-by" onchange="sortStudents()"
+                                class="px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+                                <option value="name">Sort by Name</option>
+                                <option value="grade">Sort by Grade</option>
+                                <option value="score">Sort by Score</option>
+                                <option value="attendance">Sort by Attendance</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Students Table -->
+                <div class="bg-gray-800 rounded-xl shadow-lg overflow-hidden border border-gray-700">
+                    <div class="responsive-table">
+                        <table class="min-w-full divide-y divide-gray-700">
+                            <thead class="bg-gray-700">
                                 <tr>
-                                    <td colspan="6" class="px-6 py-8 text-center text-gray-400">
-                                        <div class="flex flex-col items-center justify-center">
-                                            <i data-lucide="users" class="w-12 h-12 mb-2 text-gray-500"></i>
-                                            <p>No students found. Add your first student to get started.</p>
-                                        </div>
-                                    </td>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Student</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Grade</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Performance</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Attendance</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Actions</th>
                                 </tr>
-                            `}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody id="students-table-body" class="divide-y divide-gray-700">
+                                ${students.map(student => renderStudentRow(student)).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                    ${students.length === 0 ? `
+                        <div class="p-8 text-center text-gray-400">
+                            <i data-lucide="users" class="w-12 h-12 mx-auto mb-4 text-gray-500"></i>
+                            <p>No students found. Add your first student to get started.</p>
+                        </div>
+                    ` : ''}
                 </div>
+
+                <!-- Student Detail Modal -->
+                <div id="student-detail-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 z-50 flex justify-center items-center p-4">
+                    <div class="bg-gray-800 p-6 rounded-xl shadow-2xl main-shadow max-w-md w-full border border-gray-700">
+                        <div id="student-detail-content">
+                            <!-- Student details will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            lucide.createIcons();
+        }
+
+        function renderStudentRow(student) {
+            const performanceColor = student.overall_score >= 90 ? 'text-green-400' :
+                student.overall_score >= 70 ? 'text-yellow-400' : 'text-red-400';
+            const attendanceColor = student.attendance >= 90 ? 'text-green-400' :
+                student.attendance >= 70 ? 'text-yellow-400' : 'text-red-400';
+            const status = student.overall_score >= 70 && student.attendance >= 90 ? 'Excellent' :
+                student.overall_score >= 60 && student.attendance >= 80 ? 'Good' : 'Needs Attention';
+
+            return `
+                <tr class="hover:bg-gray-700/50 transition" id="student-row-${student.id}">
+                    <td class="px-6 py-4">
+                        <div class="font-medium text-white">${student.name}</div>
+                        <div class="text-xs text-gray-400">${student.email || 'No email'}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 py-1 text-xs font-medium bg-indigo-900/30 text-indigo-300 rounded-full">
+                            Grade ${student.grade}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center">
+                            <div class="w-24 bg-gray-700 rounded-full h-2 mr-3">
+                                <div class="h-full ${performanceColor.replace('text-', 'bg-')} rounded-full" 
+                                      style="width: ${student.overall_score}%"></div>
+                            </div>
+                            <span class="${performanceColor} font-bold">${student.overall_score}%</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center">
+                            <div class="w-24 bg-gray-700 rounded-full h-2 mr-3">
+                                <div class="h-full ${attendanceColor.replace('text-', 'bg-')} rounded-full" 
+                                      style="width: ${student.attendance}%"></div>
+                            </div>
+                            <span class="${attendanceColor} font-bold">${student.attendance}%</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs font-medium rounded-full 
+                            ${status === 'Excellent' ? 'bg-green-900/30 text-green-300' :
+                    status === 'Good' ? 'bg-yellow-900/30 text-yellow-300' :
+                        'bg-red-900/30 text-red-300'}">
+                            ${status}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div class="flex justify-end space-x-2">
+                            <button onclick="viewStudentDetail(${student.id})" 
+                                class="p-2 text-blue-400 hover:text-blue-500 hover:bg-gray-700 rounded-lg transition">
+                                <i data-lucide="eye" class="w-4 h-4"></i>
+                            </button>
+                            <button onclick="editStudent(${student.id})" 
+                                class="p-2 text-yellow-400 hover:text-yellow-500 hover:bg-gray-700 rounded-lg transition">
+                                <i data-lucide="edit" class="w-4 h-4"></i>
+                            </button>
+                            <button onclick="deleteStudent(${student.id})" 
+                                class="p-2 text-red-400 hover:text-red-500 hover:bg-gray-700 rounded-lg transition">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
             `;
         }
 
-        function renderStaff() {
-            const staff = appState.staff || [];
+        function showAddStudentForm() {
+            document.getElementById('add-student-form').classList.remove('hidden');
+        }
 
-            viewContent.innerHTML = `
-                <div class="flex justify-between items-center mb-6">
-                    <p class="text-sm text-gray-400">${staff.length} staff members currently employed.</p>
-                    <button onclick="showAddForm('staff')" class="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-white gradient-main rounded-xl hover:opacity-90 transition main-shadow">
-                        <i data-lucide="plus" class="w-4 h-4"></i>
-                        <span>Add Staff</span>
+        function hideAddStudentForm() {
+            document.getElementById('add-student-form').classList.add('hidden');
+            document.getElementById('student-form').reset();
+        }
+
+        async function handleAddStudent(event) {
+            event.preventDefault();
+
+            const student = {
+                id: Date.now(),
+                name: document.getElementById('student-name').value,
+                grade: parseInt(document.getElementById('student-grade').value),
+                email: document.getElementById('student-email').value || '',
+                overall_score: parseInt(document.getElementById('student-score').value) || 0,
+                attendance: parseInt(document.getElementById('student-attendance').value) || 0
+            };
+
+            appState.students.push(student);
+            saveAppState();
+
+            // Add to progress data
+            const baseline = Math.max(0, student.overall_score - 15 + Math.floor(Math.random() * 30));
+            const midline = Math.min(baseline + Math.floor(Math.random() * 20), 95);
+
+            appState.assessments.studentProgress.push({
+                id: student.id,
+                name: student.name,
+                grade: student.grade,
+                baseline_score: baseline,
+                midline_score: midline,
+                endline_score: student.overall_score,
+                improvement: student.overall_score - baseline
+            });
+
+            saveAppState();
+
+            hideAddStudentForm();
+            renderStudents();
+
+            showModal('Success', `${student.name} has been added successfully.`);
+        }
+
+        function viewStudentDetail(studentId) {
+            const student = appState.students.find(s => s.id === studentId);
+            if (!student) return;
+
+            const progress = appState.assessments.studentProgress.find(p => p.id === studentId);
+
+            const modal = document.getElementById('student-detail-modal');
+            const content = document.getElementById('student-detail-content');
+
+            content.innerHTML = `
+                <div class="flex justify-between items-start mb-4">
+                    <h3 class="text-xl font-bold text-indigo-400">Student Details</h3>
+                    <button onclick="closeStudentDetailModal()" class="p-2 hover:bg-gray-700 rounded-lg">
+                        <i data-lucide="x" class="w-5 h-5"></i>
                     </button>
                 </div>
-                ${renderAddStaffForm()}
                 
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    ${staff.length > 0 ? staff.map(s => `
-                        <div class="flex justify-between items-center p-6 bg-gray-800 rounded-xl shadow-lg border border-gray-700 transition duration-150 hover:border-purple-500">
-                            <div>
-                                <div class="font-semibold text-lg text-white">${s.name}</div>
-                                <div class="text-sm text-purple-400">${s.role}</div>
-                                <div class="text-xs text-gray-400">${s.department}</div>
+                <div class="space-y-4">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-16 h-16 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center text-white text-2xl font-bold">
+                            ${student.name.charAt(0)}
+                        </div>
+                        <div>
+                            <h4 class="text-lg font-semibold text-white">${student.name}</h4>
+                            <p class="text-gray-400">Grade ${student.grade}</p>
+                            ${student.email ? `<p class="text-gray-400 text-sm">${student.email}</p>` : ''}
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-gray-700/50 p-3 rounded-lg">
+                            <p class="text-sm text-gray-400">Overall Score</p>
+                            <p class="text-2xl font-bold text-white">${student.overall_score}%</p>
+                        </div>
+                        <div class="bg-gray-700/50 p-3 rounded-lg">
+                            <p class="text-sm text-gray-400">Attendance</p>
+                            <p class="text-2xl font-bold text-white">${student.attendance}%</p>
+                        </div>
+                    </div>
+                    
+                    ${progress ? `
+                        <div class="bg-gray-700/50 p-4 rounded-lg">
+                            <h5 class="font-semibold text-white mb-2">Progress Timeline</h5>
+                            <div class="space-y-2">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-400">Baseline</span>
+                                    <span class="font-medium ${progress.baseline_score >= 70 ? 'text-green-400' : 'text-yellow-400'}">${progress.baseline_score}%</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-400">Midline</span>
+                                    <span class="font-medium ${progress.midline_score >= 70 ? 'text-green-400' : 'text-yellow-400'}">${progress.midline_score}%</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-400">Endline</span>
+                                    <span class="font-medium ${progress.endline_score >= 70 ? 'text-green-400' : 'text-yellow-400'}">${progress.endline_score}%</span>
+                                </div>
+                                <div class="border-t border-gray-600 pt-2 mt-2">
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-sm text-gray-400">Total Improvement</span>
+                                        <span class="font-bold ${progress.improvement > 0 ? 'text-green-400' : 'text-red-400'}">
+                                            ${progress.improvement > 0 ? '+' : ''}${progress.improvement}%
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
-                            <button onclick="handleDelete('staff', ${s.id})" class="text-red-400 hover:text-red-500 transition p-2 rounded-full hover:bg-gray-700" title="Delete Staff">
-                                <i data-lucide="trash-2" class="w-5 h-5"></i>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="flex space-x-3 pt-4">
+                        <button onclick="editStudent(${student.id})" class="flex-1 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition">
+                            Edit Student
+                        </button>
+                        <button onclick="generateStudentReport(${student.id})" class="flex-1 py-2 text-sm font-medium text-gray-300 bg-gray-700 rounded-lg hover:bg-gray-600 transition">
+                            Generate Report
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            modal.classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function closeStudentDetailModal() {
+            document.getElementById('student-detail-modal').classList.add('hidden');
+        }
+
+        function editStudent(studentId) {
+            const student = appState.students.find(s => s.id === studentId);
+            if (!student) return;
+
+            document.getElementById('student-name').value = student.name;
+            document.getElementById('student-grade').value = student.grade;
+            document.getElementById('student-email').value = student.email || '';
+            document.getElementById('student-score').value = student.overall_score;
+            document.getElementById('student-attendance').value = student.attendance;
+
+            // Change form to edit mode
+            const form = document.getElementById('student-form');
+            form.onsubmit = (e) => handleEditStudent(e, studentId);
+
+            const submitBtn = form.querySelector('button[type="submit"]');
+            submitBtn.textContent = 'Update Student';
+
+            showAddStudentForm();
+        }
+
+        function handleEditStudent(event, studentId) {
+            event.preventDefault();
+
+            const studentIndex = appState.students.findIndex(s => s.id === studentId);
+            if (studentIndex === -1) return;
+
+            appState.students[studentIndex] = {
+                ...appState.students[studentIndex],
+                name: document.getElementById('student-name').value,
+                grade: parseInt(document.getElementById('student-grade').value),
+                email: document.getElementById('student-email').value || '',
+                overall_score: parseInt(document.getElementById('student-score').value) || 0,
+                attendance: parseInt(document.getElementById('student-attendance').value) || 0
+            };
+
+            // Update progress data if exists
+            const progressIndex = appState.assessments.studentProgress.findIndex(p => p.id === studentId);
+            if (progressIndex !== -1) {
+                appState.assessments.studentProgress[progressIndex] = {
+                    ...appState.assessments.studentProgress[progressIndex],
+                    name: appState.students[studentIndex].name,
+                    grade: appState.students[studentIndex].grade,
+                    endline_score: appState.students[studentIndex].overall_score
+                };
+            }
+
+            saveAppState();
+            hideAddStudentForm();
+            renderStudents();
+
+            showModal('Success', 'Student updated successfully.');
+        }
+
+        async function deleteStudent(studentId) {
+            const student = appState.students.find(s => s.id === studentId);
+            if (!student) return;
+
+            const confirmed = await showModal(
+                'Confirm Delete',
+                `Are you sure you want to delete ${student.name}? This action cannot be undone.`,
+                true
+            );
+
+            if (!confirmed) return;
+
+            appState.students = appState.students.filter(s => s.id !== studentId);
+            appState.assessments.studentProgress = appState.assessments.studentProgress.filter(p => p.id !== studentId);
+            saveAppState();
+            renderStudents();
+
+            showModal('Success', 'Student deleted successfully.');
+        }
+
+        function filterStudents() {
+            const searchTerm = document.getElementById('student-search').value.toLowerCase();
+            const gradeFilter = document.getElementById('grade-filter').value;
+
+            let filtered = appState.students;
+
+            if (searchTerm) {
+                filtered = filtered.filter(student =>
+                    student.name.toLowerCase().includes(searchTerm) ||
+                    (student.email && student.email.toLowerCase().includes(searchTerm))
+                );
+            }
+
+            if (gradeFilter) {
+                filtered = filtered.filter(student => student.grade == gradeFilter);
+            }
+
+            const tbody = document.getElementById('students-table-body');
+            tbody.innerHTML = filtered.map(student => renderStudentRow(student)).join('');
+        }
+
+        function sortStudents() {
+            const sortBy = document.getElementById('sort-by').value;
+
+            appState.students.sort((a, b) => {
+                if (sortBy === 'name') return a.name.localeCompare(b.name);
+                if (sortBy === 'grade') return a.grade - b.grade;
+                if (sortBy === 'score') return b.overall_score - a.overall_score;
+                if (sortBy === 'attendance') return b.attendance - a.attendance;
+                return 0;
+            });
+
+            renderStudents();
+        }
+
+        function exportStudents() {
+            const data = appState.students.map(student => ({
+                Name: student.name,
+                Grade: student.grade,
+                Email: student.email || '',
+                'Overall Score': student.overall_score,
+                Attendance: student.attendance,
+                'Last Updated': new Date().toLocaleDateString()
+            }));
+
+            exportToCSV(data, 'students_export.csv');
+            showModal('Export Complete', 'Student data has been exported successfully.');
+        }
+
+        function addQuickStudent() {
+            const names = ['Alex Johnson', 'Sophia Williams', 'Mason Brown', 'Isabella Davis', 'Ethan Miller'];
+            const name = names[Math.floor(Math.random() * names.length)];
+            const grade = Math.floor(Math.random() * 12) + 1;
+            const score = Math.floor(Math.random() * 30) + 70;
+            const attendance = Math.floor(Math.random() * 20) + 80;
+
+            const student = {
+                id: Date.now(),
+                name: name,
+                grade: grade,
+                email: `${name.toLowerCase().replace(' ', '.')}@school.edu`,
+                overall_score: score,
+                attendance: attendance
+            };
+
+            appState.students.push(student);
+            saveAppState();
+            renderDashboard();
+
+            showModal('Quick Student Added', `${name} has been added to Grade ${grade}.`);
+        }
+
+        // ============================================
+        // STAFF VIEW (Similar pattern as Students)
+        // ============================================
+
+        function renderStaff() {
+            const staff = appState.staff;
+            const viewContent = document.getElementById('view-content');
+
+            viewContent.innerHTML = `
+                <div class="mb-6">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <h2 class="text-xl font-semibold text-gray-200 mb-2">Staff Directory</h2>
+                            <p class="text-sm text-gray-400">Manage staff records and departments</p>
+                        </div>
+                        <div class="flex space-x-3">
+                            <button onclick="showAddStaffForm()" 
+                                class="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-white gradient-main rounded-xl hover:opacity-90 transition main-shadow">
+                                <i data-lucide="plus" class="w-4 h-4"></i>
+                                <span>Add Staff</span>
+                            </button>
+                            <button onclick="exportStaff()" 
+                                class="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gray-300 bg-gray-800 rounded-xl hover:bg-gray-700 transition">
+                                <i data-lucide="download" class="w-4 h-4"></i>
+                                <span>Export</span>
                             </button>
                         </div>
-                    `).join('') : `
+                    </div>
+                </div>
+
+                <!-- Staff Cards Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    ${staff.map(staffMember => renderStaffCard(staffMember)).join('')}
+                    
+                    ${staff.length === 0 ? `
                         <div class="col-span-3 flex flex-col items-center justify-center p-8 bg-gray-800 rounded-xl border border-gray-700">
                             <i data-lucide="user-plus" class="w-16 h-16 mb-4 text-gray-500"></i>
                             <p class="text-gray-400 text-center">No staff members found. Add your first staff member to get started.</p>
                         </div>
-                    `}
+                    ` : ''}
+                </div>
+
+                <!-- Add Staff Form -->
+                <div id="add-staff-form" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 z-50 flex justify-center items-center p-4">
+                    <div class="bg-gray-800 p-6 rounded-xl shadow-2xl main-shadow max-w-md w-full border border-gray-700">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-xl font-semibold text-purple-400">Add Staff Member</h3>
+                            <button onclick="hideAddStaffForm()" class="p-2 hover:bg-gray-700 rounded-lg">
+                                <i data-lucide="x" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                        <form id="staff-form" onsubmit="handleAddStaff(event)" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-1">Full Name *</label>
+                                <input type="text" id="staff-name" required
+                                    class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-1">Role *</label>
+                                <input type="text" id="staff-role" required
+                                    class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-1">Department *</label>
+                                <select id="staff-department" required
+                                    class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition">
+                                    <option value="">Select Department</option>
+                                    <option value="Mathematics">Mathematics</option>
+                                    <option value="Science">Science</option>
+                                    <option value="Language Arts">Language Arts</option>
+                                    <option value="Social Studies">Social Studies</option>
+                                    <option value="Fine Arts">Fine Arts</option>
+                                    <option value="Physical Education">Physical Education</option>
+                                    <option value="Administration">Administration</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-1">Email</label>
+                                <input type="email" id="staff-email"
+                                    class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition">
+                            </div>
+                            <div class="flex justify-end space-x-3 pt-4">
+                                <button type="button" onclick="hideAddStaffForm()"
+                                    class="px-4 py-2 text-sm font-medium text-gray-300 bg-gray-700 rounded-lg hover:bg-gray-600 transition">
+                                    Cancel
+                                </button>
+                                <button type="submit"
+                                    class="px-4 py-2 text-sm font-medium text-white gradient-main rounded-lg hover:opacity-90 transition">
+                                    Add Staff
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             `;
+
+            lucide.createIcons();
+        }
+
+        function renderStaffCard(staff) {
+            const departmentColors = {
+                'Mathematics': 'from-blue-500 to-cyan-500',
+                'Science': 'from-green-500 to-emerald-500',
+                'Language Arts': 'from-purple-500 to-pink-500',
+                'Social Studies': 'from-orange-500 to-red-500',
+                'Fine Arts': 'from-pink-500 to-rose-500',
+                'Physical Education': 'from-teal-500 to-green-500',
+                'Administration': 'from-gray-500 to-slate-500'
+            };
+
+            const colorClass = departmentColors[staff.department] || 'from-indigo-500 to-purple-500';
+
+            return `
+                <div class="bg-gray-800 rounded-xl shadow-lg border border-gray-700 overflow-hidden transition duration-300 hover:scale-[1.02]">
+                    <div class="h-2 bg-gradient-to-r ${colorClass}"></div>
+                    <div class="p-6">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 class="text-lg font-semibold text-white">${staff.name}</h3>
+                                <p class="text-sm text-purple-400">${staff.role}</p>
+                            </div>
+                            <div class="flex space-x-2">
+                                <button onclick="editStaff(${staff.id})" class="p-2 hover:bg-gray-700 rounded-lg transition">
+                                    <i data-lucide="edit" class="w-4 h-4 text-yellow-400"></i>
+                                </button>
+                                <button onclick="deleteStaff(${staff.id})" class="p-2 hover:bg-gray-700 rounded-lg transition">
+                                    <i data-lucide="trash-2" class="w-4 h-4 text-red-400"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-3">
+                            <div class="flex items-center text-gray-400">
+                                <i data-lucide="building" class="w-4 h-4 mr-2"></i>
+                                <span class="text-sm">${staff.department}</span>
+                            </div>
+                            ${staff.email ? `
+                                <div class="flex items-center text-gray-400">
+                                    <i data-lucide="mail" class="w-4 h-4 mr-2"></i>
+                                    <span class="text-sm">${staff.email}</span>
+                                </div>
+                            ` : ''}
+                            ${staff.phone ? `
+                                <div class="flex items-center text-gray-400">
+                                    <i data-lucide="phone" class="w-4 h-4 mr-2"></i>
+                                    <span class="text-sm">${staff.phone}</span>
+                                </div>
+                            ` : ''}
+                        </div>
+                        
+                        <div class="mt-4 pt-4 border-t border-gray-700">
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs text-gray-500">Employee ID: ${staff.id}</span>
+                                <button onclick="viewStaffSchedule(${staff.id})" class="text-xs text-indigo-400 hover:text-indigo-300">
+                                    View Schedule →
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function showAddStaffForm() {
+            document.getElementById('add-staff-form').classList.remove('hidden');
+        }
+
+        function hideAddStaffForm() {
+            document.getElementById('add-staff-form').classList.add('hidden');
+            document.getElementById('staff-form').reset();
+        }
+
+        function handleAddStaff(event) {
+            event.preventDefault();
+
+            const staff = {
+                id: Date.now(),
+                name: document.getElementById('staff-name').value,
+                role: document.getElementById('staff-role').value,
+                department: document.getElementById('staff-department').value,
+                email: document.getElementById('staff-email').value || '',
+                phone: ''
+            };
+
+            appState.staff.push(staff);
+            saveAppState();
+
+            hideAddStaffForm();
+            renderStaff();
+
+            showModal('Success', `${staff.name} has been added to the ${staff.department} department.`);
+        }
+
+        function editStaff(staffId) {
+            const staff = appState.staff.find(s => s.id === staffId);
+            if (!staff) return;
+
+            document.getElementById('staff-name').value = staff.name;
+            document.getElementById('staff-role').value = staff.role;
+            document.getElementById('staff-department').value = staff.department;
+            document.getElementById('staff-email').value = staff.email || '';
+
+            const form = document.getElementById('staff-form');
+            form.onsubmit = (e) => handleEditStaff(e, staffId);
+
+            const submitBtn = form.querySelector('button[type="submit"]');
+            submitBtn.textContent = 'Update Staff';
+
+            showAddStaffForm();
+        }
+
+        function handleEditStaff(event, staffId) {
+            event.preventDefault();
+
+            const staffIndex = appState.staff.findIndex(s => s.id === staffId);
+            if (staffIndex === -1) return;
+
+            appState.staff[staffIndex] = {
+                ...appState.staff[staffIndex],
+                name: document.getElementById('staff-name').value,
+                role: document.getElementById('staff-role').value,
+                department: document.getElementById('staff-department').value,
+                email: document.getElementById('staff-email').value || ''
+            };
+
+            saveAppState();
+            hideAddStaffForm();
+            renderStaff();
+
+            showModal('Success', 'Staff member updated successfully.');
+        }
+
+        async function deleteStaff(staffId) {
+            const staff = appState.staff.find(s => s.id === staffId);
+            if (!staff) return;
+
+            const confirmed = await showModal(
+                'Confirm Delete',
+                `Are you sure you want to delete ${staff.name}? This action cannot be undone.`,
+                true
+            );
+
+            if (!confirmed) return;
+
+            appState.staff = appState.staff.filter(s => s.id !== staffId);
+            saveAppState();
+            renderStaff();
+
+            showModal('Success', 'Staff member deleted successfully.');
+        }
+
+        function viewStaffSchedule(staffId) {
+            const staff = appState.staff.find(s => s.id === staffId);
+            if (!staff) return;
+
+            showModal('Schedule View', `${staff.name}'s schedule is currently being developed. This feature will be available in the next update.`);
+        }
+
+        function exportStaff() {
+            const data = appState.staff.map(staff => ({
+                Name: staff.name,
+                Role: staff.role,
+                Department: staff.department,
+                Email: staff.email || '',
+                Phone: staff.phone || '',
+                'Employee ID': staff.id
+            }));
+
+            exportToCSV(data, 'staff_export.csv');
+            showModal('Export Complete', 'Staff data has been exported successfully.');
+        }
+
+        // ============================================
+        // PROGRESS VIEW
+        // ============================================
+
+        async function loadProgressData() {
+            // Generate mock subjects data
+            appState.progress.subjects = [
+                { name: "Mathematics", teacher: "Dr. Sarah Mitchell", average: 85.2, improvement: 8.5, students: 45 },
+                { name: "Science", teacher: "Mr. James Wilson", average: 78.7, improvement: 12.3, students: 42 },
+                { name: "English", teacher: "Ms. Emily Chen", average: 82.1, improvement: 5.2, students: 48 },
+                { name: "History", teacher: "Dr. Robert Taylor", average: 75.8, improvement: 3.7, students: 40 },
+                { name: "Art", teacher: "Mrs. Lisa Anderson", average: 88.4, improvement: 15.1, students: 38 }
+            ];
+
+            renderProgress();
         }
 
         function renderProgress() {
-            const subjects = appState.progress.subjects || [];
-            const chartData = appState.progress.chart;
+            const subjects = appState.progress.subjects;
+            const viewContent = document.getElementById('view-content');
+
+            // Calculate overall statistics
+            const totalStudents = subjects.reduce((sum, subject) => sum + subject.students, 0);
+            const avgScore = subjects.reduce((sum, subject) => sum + subject.average, 0) / subjects.length;
+            const avgImprovement = subjects.reduce((sum, subject) => sum + subject.improvement, 0) / subjects.length;
 
             viewContent.innerHTML = `
-                <h2 class="text-2xl font-semibold mb-4 text-indigo-400">Academic Progress Analysis</h2>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700">
+                        <div class="text-sm font-medium text-gray-400">Total Students</div>
+                        <div class="mt-2 text-3xl font-extrabold text-white">${totalStudents}</div>
+                    </div>
+                    <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700">
+                        <div class="text-sm font-medium text-gray-400">Avg Score</div>
+                        <div class="mt-2 text-3xl font-extrabold text-white">${avgScore.toFixed(1)}%</div>
+                    </div>
+                    <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700">
+                        <div class="text-sm font-medium text-gray-400">Avg Improvement</div>
+                        <div class="mt-2 text-3xl font-extrabold text-white">${avgImprovement.toFixed(1)}%</div>
+                    </div>
+                    <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700">
+                        <div class="text-sm font-medium text-gray-400">Subjects</div>
+                        <div class="mt-2 text-3xl font-extrabold text-white">${subjects.length}</div>
+                    </div>
+                </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                     <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700">
-                        <h3 class="text-xl font-semibold mb-4 text-gray-200">Overall Score Distribution</h3>
+                        <h3 class="text-xl font-semibold mb-4 text-gray-200">Subject Performance</h3>
                         <div class="h-80">
-                            <canvas id="progress-chart-view"></canvas>
+                            <canvas id="progress-chart"></canvas>
                         </div>
                     </div>
                     <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700">
-                        <h3 class="text-xl font-semibold mb-4 text-gray-200">AI-Powered Improvement Focus</h3>
-                        <p class="text-gray-400 mb-4 text-sm">Identifying areas of highest and lowest recent improvement across subjects.</p>
-                        <ul class="space-y-3">
-                            ${subjects.sort((a, b) => b.improvement - a.improvement).map(s => `
-                                <li class="flex justify-between items-center p-3 rounded-lg bg-gray-700/50 border-l-4 ${s.improvement > 0 ? 'border-green-500' : 'border-red-500'}">
-                                    <div class="flex flex-col">
-                                        <span class="font-medium text-lg text-white">${s.name}</span>
-                                        <span class="text-xs text-gray-400">Teacher: ${s.teacher}</span>
+                        <h3 class="text-xl font-semibold mb-4 text-gray-200">Subject Details</h3>
+                        <div class="space-y-4">
+                            ${subjects.sort((a, b) => b.improvement - a.improvement).map(subject => `
+                                <div class="p-4 rounded-lg bg-gray-700/50 border-l-4 ${subject.improvement > 0 ? 'border-green-500' : 'border-red-500'}">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <div>
+                                            <h4 class="font-semibold text-white">${subject.name}</h4>
+                                            <p class="text-sm text-gray-400">${subject.teacher}</p>
+                                        </div>
+                                        <div class="text-right">
+                                            <div class="text-lg font-bold ${subject.improvement > 0 ? 'text-green-400' : 'text-red-400'}">
+                                                ${subject.improvement > 0 ? '+' : ''}${subject.improvement.toFixed(1)}%
+                                            </div>
+                                            <div class="text-sm text-gray-500">Improvement</div>
+                                        </div>
                                     </div>
-                                    <div class="text-right">
-                                        <span class="text-lg font-bold ${s.improvement > 0 ? 'text-green-400' : 'text-red-400'}">${s.improvement.toFixed(1)}%</span>
-                                        <span class="text-xs text-gray-500 block">Avg: ${s.average.toFixed(1)}%</span>
+                                    <div class="flex items-center justify-between text-sm">
+                                        <span class="text-gray-400">Avg: ${subject.average.toFixed(1)}%</span>
+                                        <span class="text-gray-400">Students: ${subject.students}</span>
+                                        <button onclick="viewSubjectDetails('${subject.name}')" class="text-indigo-400 hover:text-indigo-300">
+                                            Details →
+                                        </button>
                                     </div>
-                                </li>
+                                </div>
                             `).join('')}
-                        </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700">
+                    <h3 class="text-xl font-semibold mb-4 text-gray-200">AI Recommendations</h3>
+                    <div class="space-y-4">
+                        <div class="p-4 rounded-lg bg-indigo-900/20 border border-indigo-700">
+                            <div class="flex items-start">
+                                <i data-lucide="lightbulb" class="w-5 h-5 text-yellow-400 mr-3 mt-0.5"></i>
+                                <div>
+                                    <h4 class="font-semibold text-white mb-1">Focus on Science Department</h4>
+                                    <p class="text-sm text-gray-300">Science shows the highest improvement rate (+12.3%). Consider replicating successful teaching strategies in other subjects.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="p-4 rounded-lg bg-purple-900/20 border border-purple-700">
+                            <div class="flex items-start">
+                                <i data-lucide="alert-triangle" class="w-5 h-5 text-yellow-400 mr-3 mt-0.5"></i>
+                                <div>
+                                    <h4 class="font-semibold text-white mb-1">History Needs Attention</h4>
+                                    <p class="text-sm text-gray-300">History has the lowest improvement rate (+3.7%). Recommend additional resources and teacher training.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="p-4 rounded-lg bg-green-900/20 border border-green-700">
+                            <div class="flex items-start">
+                                <i data-lucide="trending-up" class="w-5 h-5 text-green-400 mr-3 mt-0.5"></i>
+                                <div>
+                                    <h4 class="font-semibold text-white mb-1">Positive Trend Detected</h4>
+                                    <p class="text-sm text-gray-300">Overall improvement rate is positive. Continue current teaching methodologies with regular assessments.</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             `;
-            if (chartData) {
-                initializeChart(chartData, 'progress-chart-view');
+
+            // Initialize progress chart
+            initializeProgressChart();
+            lucide.createIcons();
+        }
+
+        function initializeProgressChart() {
+            const ctx = document.getElementById('progress-chart');
+            if (!ctx) return;
+
+            const subjects = appState.progress.subjects;
+
+            if (appState.charts.progress) {
+                appState.charts.progress.destroy();
             }
+
+            appState.charts.progress = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: subjects.map(s => s.name),
+                    datasets: [
+                        {
+                            label: 'Average Score',
+                            data: subjects.map(s => s.average),
+                            backgroundColor: 'rgba(99, 102, 241, 0.7)',
+                            borderColor: 'rgb(99, 102, 241)',
+                            borderWidth: 1,
+                            borderRadius: 6
+                        },
+                        {
+                            label: 'Improvement',
+                            data: subjects.map(s => s.improvement),
+                            backgroundColor: 'rgba(16, 185, 129, 0.7)',
+                            borderColor: 'rgb(16, 185, 129)',
+                            borderWidth: 1,
+                            borderRadius: 6
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { color: '#9ca3af' },
+                            grid: { color: '#374151' }
+                        },
+                        x: {
+                            ticks: { color: '#9ca3af' },
+                            grid: { display: false }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: { color: '#9ca3af' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function viewSubjectDetails(subjectName) {
+            const subject = appState.progress.subjects.find(s => s.name === subjectName);
+            if (!subject) return;
+
+            showModal(
+                subjectName + ' Details',
+                `Teacher: ${subject.teacher}<br>
+                Average Score: ${subject.average.toFixed(1)}%<br>
+                Improvement: ${subject.improvement > 0 ? '+' : ''}${subject.improvement.toFixed(1)}%<br>
+                Students: ${subject.students}<br><br>
+                ${subject.improvement > 10 ? '✅ Excellent progress!' :
+                    subject.improvement > 5 ? '📈 Good progress' :
+                        '⚠️ Needs attention'}`
+            );
+        }
+
+        // ============================================
+        // ASSESSMENTS VIEW
+        // ============================================
+
+        async function loadAssessmentsData() {
+            // Generate mock assessment data
+            appState.assessments.baseline = appState.students.map(student => ({
+                id: student.id,
+                name: student.name,
+                completed: Math.random() > 0.2,
+                score: Math.floor(Math.random() * 30) + 50
+            }));
+
+            appState.assessments.midline = appState.students.map(student => ({
+                id: student.id,
+                name: student.name,
+                completed: Math.random() > 0.3,
+                score: Math.floor(Math.random() * 20) + 60
+            }));
+
+            appState.assessments.endline = appState.students.map(student => ({
+                id: student.id,
+                name: student.name,
+                completed: Math.random() > 0.15,
+                score: Math.floor(Math.random() * 10) + 70
+            }));
+
+            renderAssessments();
         }
 
         function renderAssessments() {
-            const baseline = appState.assessments.baseline || [];
-            const midline = appState.assessments.midline || [];
-            const endline = appState.assessments.endline || [];
-            const studentProgress = appState.assessments.studentProgress || [];
+            const baseline = appState.assessments.baseline;
+            const midline = appState.assessments.midline;
+            const endline = appState.assessments.endline;
+            const studentProgress = appState.assessments.studentProgress;
+
+            const viewContent = document.getElementById('view-content');
+
+            // Calculate completion rates
+            const baselineCompletion = baseline.filter(s => s.completed).length / baseline.length * 100;
+            const midlineCompletion = midline.filter(s => s.completed).length / midline.length * 100;
+            const endlineCompletion = endline.filter(s => s.completed).length / endline.length * 100;
 
             viewContent.innerHTML = `
-                <div class="mb-8">
-                    <h2 class="text-2xl font-bold mb-4 text-indigo-400">Student Assessment Dashboard</h2>
-                    <p class="text-gray-400 mb-6">Track student progress across baseline, midline, and endline assessments to measure the impact of AI-empowered education.</p>
-                    
-                    <!-- Assessment Overview Cards -->
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                        <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-indigo-700 assessment-card">
-                            <div class="flex items-center justify-between mb-4">
-                                <h3 class="text-lg font-semibold text-indigo-300">Baseline Assessment</h3>
-                                <i data-lucide="clipboard-list" class="w-8 h-8 text-indigo-400"></i>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-indigo-700 assessment-card">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-indigo-300">Baseline Assessment</h3>
+                            <i data-lucide="clipboard-list" class="w-8 h-8 text-indigo-400"></i>
+                        </div>
+                        <div class="text-3xl font-bold text-white mb-2">${baseline.length}</div>
+                        <p class="text-sm text-gray-400 mb-4">Initial assessment at program start</p>
+                        <div>
+                            <div class="flex justify-between text-xs text-gray-400 mb-1">
+                                <span>Completion Rate</span>
+                                <span>${baselineCompletion.toFixed(1)}%</span>
                             </div>
-                            <div class="text-3xl font-bold text-white mb-2">${baseline.length}</div>
-                            <p class="text-sm text-gray-400">Students assessed at program start</p>
-                            <div class="mt-4">
-                                <div class="flex justify-between text-xs text-gray-400 mb-1">
-                                    <span>Completion</span>
-                                    <span>${baseline.filter(s => s.completed).length}/${baseline.length}</span>
-                                </div>
-                                <div class="progress-bar bg-gray-700">
-                                    <div class="baseline-color h-full" style="width: ${(baseline.filter(s => s.completed).length / baseline.length) * 100 || 0}%"></div>
-                                </div>
+                            <div class="progress-bar bg-gray-700">
+                                <div class="baseline-color h-full" style="width: ${baselineCompletion}%"></div>
                             </div>
                         </div>
-                        
-                        <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-purple-700 assessment-card">
-                            <div class="flex items-center justify-between mb-4">
-                                <h3 class="text-lg font-semibold text-purple-300">Midline Assessment</h3>
-                                <i data-lucide="clipboard-check" class="w-8 h-8 text-purple-400"></i>
-                            </div>
-                            <div class="text-3xl font-bold text-white mb-2">${midline.length}</div>
-                            <p class="text-sm text-gray-400">Students assessed mid-program</p>
-                            <div class="mt-4">
-                                <div class="flex justify-between text-xs text-gray-400 mb-1">
-                                    <span>Completion</span>
-                                    <span>${midline.filter(s => s.completed).length}/${midline.length}</span>
-                                </div>
-                                <div class="progress-bar bg-gray-700">
-                                    <div class="midline-color h-full" style="width: ${(midline.filter(s => s.completed).length / midline.length) * 100 || 0}%"></div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-pink-700 assessment-card">
-                            <div class="flex items-center justify-between mb-4">
-                                <h3 class="text-lg font-semibold text-pink-300">Endline Assessment</h3>
-                                <i data-lucide="award" class="w-8 h-8 text-pink-400"></i>
-                            </div>
-                            <div class="text-3xl font-bold text-white mb-2">${endline.length}</div>
-                            <p class="text-sm text-gray-400">Students assessed at program end</p>
-                            <div class="mt-4">
-                                <div class="flex justify-between text-xs text-gray-400 mb-1">
-                                    <span>Completion</span>
-                                    <span>${endline.filter(s => s.completed).length}/${endline.length}</span>
-                                </div>
-                                <div class="progress-bar bg-gray-700">
-                                    <div class="endline-color h-full" style="width: ${(endline.filter(s => s.completed).length / endline.length) * 100 || 0}%"></div>
-                                </div>
-                            </div>
-                        </div>
+                        <button onclick="runBaselineAssessment()" class="mt-4 w-full py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition">
+                            Run Assessment
+                        </button>
                     </div>
                     
-                    <!-- Student Progress Table -->
-                    <div class="bg-gray-800 rounded-xl shadow-lg overflow-hidden border border-gray-700 responsive-table">
-                        <h3 class="text-xl font-semibold p-6 text-gray-200 border-b border-gray-700">Individual Student Progress</h3>
+                    <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-purple-700 assessment-card">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-purple-300">Midline Assessment</h3>
+                            <i data-lucide="clipboard-check" class="w-8 h-8 text-purple-400"></i>
+                        </div>
+                        <div class="text-3xl font-bold text-white mb-2">${midline.length}</div>
+                        <p class="text-sm text-gray-400 mb-4">Progress check mid-program</p>
+                        <div>
+                            <div class="flex justify-between text-xs text-gray-400 mb-1">
+                                <span>Completion Rate</span>
+                                <span>${midlineCompletion.toFixed(1)}%</span>
+                            </div>
+                            <div class="progress-bar bg-gray-700">
+                                <div class="midline-color h-full" style="width: ${midlineCompletion}%"></div>
+                            </div>
+                        </div>
+                        <button onclick="runMidlineAssessment()" class="mt-4 w-full py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition">
+                            Run Assessment
+                        </button>
+                    </div>
+                    
+                    <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-pink-700 assessment-card">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-pink-300">Endline Assessment</h3>
+                            <i data-lucide="award" class="w-8 h-8 text-pink-400"></i>
+                        </div>
+                        <div class="text-3xl font-bold text-white mb-2">${endline.length}</div>
+                        <p class="text-sm text-gray-400 mb-4">Final evaluation at program end</p>
+                        <div>
+                            <div class="flex justify-between text-xs text-gray-400 mb-1">
+                                <span>Completion Rate</span>
+                                <span>${endlineCompletion.toFixed(1)}%</span>
+                            </div>
+                            <div class="progress-bar bg-gray-700">
+                                <div class="endline-color h-full" style="width: ${endlineCompletion}%"></div>
+                            </div>
+                        </div>
+                        <button onclick="runEndlineAssessment()" class="mt-4 w-full py-2 text-sm font-medium text-white bg-pink-600 rounded-lg hover:bg-pink-700 transition">
+                            Run Assessment
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700 mb-8">
+                    <h3 class="text-xl font-semibold mb-4 text-gray-200">Student Progress Over Time</h3>
+                    <div class="h-80">
+                        <canvas id="assessments-chart"></canvas>
+                    </div>
+                </div>
+
+                <div class="bg-gray-800 rounded-xl shadow-lg overflow-hidden border border-gray-700">
+                    <div class="p-6 border-b border-gray-700">
+                        <h3 class="text-xl font-semibold text-gray-200">Detailed Progress Analysis</h3>
+                    </div>
+                    <div class="responsive-table">
                         <table class="min-w-full divide-y divide-gray-700">
                             <thead class="bg-gray-700">
                                 <tr>
@@ -821,308 +1935,103 @@
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Midline</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Endline</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Improvement</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Recommendation</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-700">
-                                ${studentProgress.length > 0 ? studentProgress.map(s => {
-                const baselineScore = s.baseline_score || 0;
-                const midlineScore = s.midline_score || 0;
-                const endlineScore = s.endline_score || 0;
-                const improvement = endlineScore - baselineScore;
+                                ${studentProgress.map(progress => {
+                const baseline = progress.baseline_score || 0;
+                const midline = progress.midline_score || 0;
+                const endline = progress.endline_score || 0;
+                const improvement = endline - baseline;
+
+                let recommendation = '';
+                let recColor = '';
+
+                if (improvement > 15) {
+                    recommendation = 'Excellent progress. Consider advanced materials.';
+                    recColor = 'text-green-400';
+                } else if (improvement > 5) {
+                    recommendation = 'Good progress. Continue current approach.';
+                    recColor = 'text-yellow-400';
+                } else if (improvement > 0) {
+                    recommendation = 'Moderate progress. Consider targeted support.';
+                    recColor = 'text-orange-400';
+                } else {
+                    recommendation = 'Needs intervention. Review learning plan.';
+                    recColor = 'text-red-400';
+                }
 
                 return `
-                                    <tr class="hover:bg-gray-700/50 transition">
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <div class="font-medium text-white">${s.name}</div>
-                                            <div class="text-xs text-gray-400">Grade ${s.grade}</div>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                            <div class="font-medium ${baselineScore >= 70 ? 'text-green-400' : baselineScore >= 50 ? 'text-yellow-400' : 'text-red-400'}">${baselineScore}%</div>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                            <div class="font-medium ${midlineScore >= 70 ? 'text-green-400' : midlineScore >= 50 ? 'text-yellow-400' : 'text-red-400'}">${midlineScore}%</div>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                            <div class="font-medium ${endlineScore >= 70 ? 'text-green-400' : endlineScore >= 50 ? 'text-yellow-400' : 'text-red-400'}">${endlineScore}%</div>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                            <div class="font-bold ${improvement > 0 ? 'improvement-positive' : 'improvement-negative'}">${improvement > 0 ? '+' : ''}${improvement.toFixed(1)}%</div>
-                                        </td>
-                                    </tr>
+                                        <tr class="hover:bg-gray-700/50 transition">
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <div class="font-medium text-white">${progress.name}</div>
+                                                <div class="text-xs text-gray-400">Grade ${progress.grade}</div>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <div class="font-medium ${baseline >= 70 ? 'text-green-400' : baseline >= 50 ? 'text-yellow-400' : 'text-red-400'}">
+                                                    ${baseline}%
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <div class="font-medium ${midline >= 70 ? 'text-green-400' : midline >= 50 ? 'text-yellow-400' : 'text-red-400'}">
+                                                    ${midline}%
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <div class="font-medium ${endline >= 70 ? 'text-green-400' : endline >= 50 ? 'text-yellow-400' : 'text-red-400'}">
+                                                    ${endline}%
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <div class="font-bold ${improvement > 0 ? 'text-green-400' : 'text-red-400'}">
+                                                    ${improvement > 0 ? '+' : ''}${improvement}%
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                <span class="text-sm ${recColor}">${recommendation}</span>
+                                            </td>
+                                        </tr>
                                     `;
-            }).join('') : `
-                                    <tr>
-                                        <td colspan="5" class="px-6 py-8 text-center text-gray-400">
-                                            <div class="flex flex-col items-center justify-center">
-                                                <i data-lucide="clipboard-check" class="w-12 h-12 mb-2 text-gray-500"></i>
-                                                <p>No assessment data available. Add students to see their progress.</p>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                `}
+            }).join('')}
                             </tbody>
                         </table>
                     </div>
                 </div>
             `;
-        }
 
-        function renderAIEducation() {
-            viewContent.innerHTML = `
-                <div class="max-w-6xl mx-auto">
-                    <!-- Hero Section -->
-                    <div class="bg-gradient-to-r from-indigo-900 via-purple-900 to-pink-900 rounded-2xl p-8 mb-8 text-center shadow-2xl">
-                        <h1 class="text-3xl md:text-4xl font-bold mb-4 text-white">Introducing AI in Early Education</h1>
-                        <p class="text-xl text-indigo-200 mb-6">A Comprehensive Guide for Principals and Educators</p>
-                    </div>
-
-                    <!-- Why AI in Early Education -->
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
-                        <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-indigo-700">
-                            <h2 class="text-2xl font-bold mb-4 text-indigo-300">Why Start Early?</h2>
-                            <ul class="space-y-3">
-                                <li class="flex items-start">
-                                    <i data-lucide="check-circle" class="w-5 h-5 text-green-400 mr-2 mt-1"></i>
-                                    <span class="text-gray-300">Natural curiosity helps children adapt quickly</span>
-                                </li>
-                                <li class="flex items-start">
-                                    <i data-lucide="check-circle" class="w-5 h-5 text-green-400 mr-2 mt-1"></i>
-                                    <span class="text-gray-300">Builds digital literacy foundations</span>
-                                </li>
-                                <li class="flex items-start">
-                                    <i data-lucide="check-circle" class="w-5 h-5 text-green-400 mr-2 mt-1"></i>
-                                    <span class="text-gray-300">Personalized learning from the start</span>
-                                </li>
-                                <li class="flex items-start">
-                                    <i data-lucide="check-circle" class="w-5 h-5 text-green-400 mr-2 mt-1"></i>
-                                    <span class="text-gray-300">Prepares children for an AI-driven future</span>
-                                </li>
-                            </ul>
-                        </div>
-
-                        <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-purple-700">
-                            <h2 class="text-2xl font-bold mb-4 text-purple-300">Implementation Roadmap</h2>
-                            <ul class="space-y-3">
-                                <li class="flex items-start">
-                                    <div class="bg-purple-600 text-white px-2 py-1 rounded text-xs font-bold mr-3">1-2 Mo</div>
-                                    <span class="text-gray-300">Staff training & parent workshops</span>
-                                </li>
-                                <li class="flex items-start">
-                                    <div class="bg-purple-600 text-white px-2 py-1 rounded text-xs font-bold mr-3">3 Mo</div>
-                                    <span class="text-gray-300">Pilot programs with small groups</span>
-                                </li>
-                                <li class="flex items-start">
-                                    <div class="bg-purple-600 text-white px-2 py-1 rounded text-xs font-bold mr-3">4 Mo</div>
-                                    <span class="text-gray-300">Expand to all classrooms</span>
-                                </li>
-                                <li class="flex items-start">
-                                    <div class="bg-purple-600 text-white px-2 py-1 rounded text-xs font-bold mr-3">5-6 Mo</div>
-                                    <span class="text-gray-300">Full implementation & evaluation</span>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <!-- Success Metrics -->
-                    <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700 mb-8">
-                        <h2 class="text-2xl font-bold mb-6 text-center text-white">Success Metrics</h2>
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
-                            <div class="text-center p-4 bg-gray-700/50 rounded-lg">
-                                <div class="text-3xl font-bold text-green-400 mb-2">85%</div>
-                                <div class="text-sm text-gray-300">Student Engagement</div>
-                            </div>
-                            <div class="text-center p-4 bg-gray-700/50 rounded-lg">
-                                <div class="text-3xl font-bold text-blue-400 mb-2">92%</div>
-                                <div class="text-sm text-gray-300">Teacher Confidence</div>
-                            </div>
-                            <div class="text-center p-4 bg-gray-700/50 rounded-lg">
-                                <div class="text-3xl font-bold text-purple-400 mb-2">78%</div>
-                                <div class="text-sm text-gray-300">Parent Satisfaction</div>
-                            </div>
-                            <div class="text-center p-4 bg-gray-700/50 rounded-lg">
-                                <div class="text-3xl font-bold text-yellow-400 mb-2">45%</div>
-                                <div class="text-sm text-gray-300">Learning Acceleration</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Call to Action -->
-                    <div class="text-center">
-                        <button onclick="downloadAIResources()" class="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:opacity-90 transition shadow-lg">
-                            <i data-lucide="download" class="w-5 h-5 inline mr-2"></i>
-                            Download Implementation Guide
-                        </button>
-                    </div>
-                </div>
-            `;
+            // Initialize assessments chart
+            initializeAssessmentsChart();
             lucide.createIcons();
         }
 
-        function downloadAIResources() {
-            showModal("Resources Downloaded", "The AI Implementation Guide has been downloaded to your device.");
-        }
-
-        // Form rendering
-        function showAddForm(type) {
-            const formContainer = document.getElementById(type === 'student' ? 'add-student-form-container' : 'add-staff-form-container');
-            const isHidden = formContainer.classList.contains('hidden');
-            if (isHidden) {
-                formContainer.classList.remove('hidden');
-            } else {
-                formContainer.classList.add('hidden');
-            }
-        }
-
-        function renderAddStudentForm() {
-            return `
-                <div id="add-student-form-container" class="hidden bg-gray-800 p-6 rounded-xl shadow-lg mb-8 border border-gray-700">
-                    <h3 class="text-xl font-semibold mb-4 text-indigo-400">Add New Student</h3>
-                    <form onsubmit="handleCreate(event, 'student')" class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div class="flex flex-col space-y-1">
-                            <label for="name" class="text-xs font-medium text-gray-300">Full Name *</label>
-                            <input type="text" id="name" name="name" required
-                                class="px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:ring-indigo-500 focus:border-indigo-500 transition">
-                        </div>
-                        <div class="flex flex-col space-y-1">
-                            <label for="grade" class="text-xs font-medium text-gray-300">Grade Level *</label>
-                            <input type="text" id="grade" name="grade" required
-                                class="px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:ring-indigo-500 focus:border-indigo-500 transition">
-                        </div>
-                        <div class="flex flex-col space-y-1">
-                            <label for="score" class="text-xs font-medium text-gray-300">Overall Score (0-100)</label>
-                            <input type="number" id="score" name="score"
-                                class="px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:ring-indigo-500 focus:border-indigo-500 transition">
-                        </div>
-                        <div class="flex flex-col space-y-1">
-                            <label for="attendance" class="text-xs font-medium text-gray-300">Attendance (%)</label>
-                            <input type="number" id="attendance" name="attendance"
-                                class="px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:ring-indigo-500 focus:border-indigo-500 transition">
-                        </div>
-                        <button type="submit" class="col-span-1 md:col-span-4 px-4 py-2 text-sm font-medium text-white gradient-main rounded-lg hover:opacity-90 transition">
-                            Create Student
-                        </button>
-                    </form>
-                </div>
-            `;
-        }
-
-        function renderAddStaffForm() {
-            return `
-                <div id="add-staff-form-container" class="hidden bg-gray-800 p-6 rounded-xl shadow-lg mb-8 border border-gray-700">
-                    <h3 class="text-xl font-semibold mb-4 text-purple-400">Add New Staff Member</h3>
-                    <form onsubmit="handleCreate(event, 'staff')" class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div class="flex flex-col space-y-1">
-                            <label for="name" class="text-xs font-medium text-gray-300">Full Name *</label>
-                            <input type="text" id="name" name="name" required
-                                class="px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:ring-indigo-500 focus:border-indigo-500 transition">
-                        </div>
-                        <div class="flex flex-col space-y-1">
-                            <label for="role" class="text-xs font-medium text-gray-300">Role *</label>
-                            <input type="text" id="role" name="role" required
-                                class="px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:ring-indigo-500 focus:border-indigo-500 transition">
-                        </div>
-                        <div class="flex flex-col space-y-1">
-                            <label for="department" class="text-xs font-medium text-gray-300">Department *</label>
-                            <input type="text" id="department" name="department" required
-                                class="px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:ring-indigo-500 focus:border-indigo-500 transition">
-                        </div>
-                        <button type="submit" class="col-span-1 md:col-span-3 px-4 py-2 text-sm font-medium text-white gradient-main rounded-lg hover:opacity-90 transition">
-                            Create Staff
-                        </button>
-                    </form>
-                </div>
-            `;
-        }
-
-        async function handleCreate(event, type) {
-            event.preventDefault();
-            const form = event.target;
-            const formData = new FormData(form);
-
-            const newItem = {};
-            for (let [key, value] of formData.entries()) {
-                newItem[key] = value;
-            }
-
-            newItem.id = Date.now();
-
-            if (type === 'student') {
-                newItem.overall_score = parseInt(newItem.score) || 0;
-                newItem.attendance = parseInt(newItem.attendance) || 0;
-                delete newItem.score;
-
-                appState.students.push(newItem);
-
-                const baselineScore = Math.max(0, newItem.overall_score - 10 + Math.floor(Math.random() * 20));
-                const midlineScore = Math.max(0, newItem.overall_score - 5 + Math.floor(Math.random() * 15));
-
-                appState.assessments.studentProgress.push({
-                    id: newItem.id,
-                    name: newItem.name,
-                    grade: newItem.grade,
-                    baseline_score: baselineScore,
-                    midline_score: midlineScore,
-                    endline_score: newItem.overall_score
-                });
-            } else if (type === 'staff') {
-                appState.staff.push(newItem);
-            }
-
-            saveAppState();
-
-            showModal("Success!", `${newItem.name} has been added successfully.`);
-            form.reset();
-
-            loadData();
-        }
-
-        async function handleDelete(type, id) {
-            const itemType = type === 'student' ? 'Student' : 'Staff Member';
-            const success = await showModal(
-                "Confirm Deletion",
-                `Are you sure you want to delete this ${itemType.toLowerCase()}? This action cannot be undone.`,
-                true
-            );
-
-            if (!success) return;
-
-            if (type === 'student') {
-                appState.students = appState.students.filter(s => s.id !== id);
-                appState.assessments.studentProgress = appState.assessments.studentProgress.filter(s => s.id !== id);
-            } else if (type === 'staff') {
-                appState.staff = appState.staff.filter(s => s.id !== id);
-            }
-
-            saveAppState();
-
-            showModal("Success", `${itemType} deleted successfully.`);
-            loadData();
-        }
-
-        // Chart.js integration
-        let activeChart = null;
-
-        function initializeChart(chartData, canvasId = 'average-scores-chart') {
-            if (activeChart) {
-                activeChart.destroy();
-            }
-
-            const ctx = document.getElementById(canvasId);
+        function initializeAssessmentsChart() {
+            const ctx = document.getElementById('assessments-chart');
             if (!ctx) return;
 
-            activeChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: chartData.labels,
-                    datasets: [{
-                        label: chartData.datasets[0].label,
-                        data: chartData.datasets[0].data,
-                        backgroundColor: chartData.datasets[0].backgroundColor,
-                        borderColor: chartData.datasets[0].borderColor,
-                        borderWidth: chartData.datasets[0].borderWidth,
-                        borderRadius: 6
-                    }]
-                },
+            const progress = appState.assessments.studentProgress.slice(0, 5); // Show first 5 students
+            const labels = ['Baseline', 'Midline', 'Endline'];
+
+            const datasets = progress.map((student, index) => {
+                const colors = ['#6366f1', '#8b5cf6', '#a855f7', '#ec4899', '#f59e0b'];
+                return {
+                    label: student.name,
+                    data: [student.baseline_score || 0, student.midline_score || 0, student.endline_score || 0],
+                    borderColor: colors[index % colors.length],
+                    backgroundColor: colors[index % colors.length] + '20',
+                    tension: 0.4,
+                    fill: false,
+                    borderWidth: 2
+                };
+            });
+
+            if (appState.charts.assessments) {
+                appState.charts.assessments.destroy();
+            }
+
+            appState.charts.assessments = new Chart(ctx, {
+                type: 'line',
+                data: { labels, datasets },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
@@ -1139,19 +2048,558 @@
                         }
                     },
                     plugins: {
-                        legend: { display: false },
-                        title: { display: false }
+                        legend: {
+                            position: 'top',
+                            labels: { color: '#9ca3af' }
+                        }
                     }
                 }
             });
         }
 
-        // Initialize app
-        window.onload = function () {
+        async function runBaselineAssessment() {
+            showLoading('Running Baseline Assessment...');
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            // Simulate assessment
+            appState.assessments.baseline.forEach(student => {
+                student.completed = true;
+                student.score = Math.floor(Math.random() * 30) + 50;
+            });
+
+            saveAppState();
+            hideLoading();
+            renderAssessments();
+
+            showModal('Assessment Complete', 'Baseline assessment has been completed for all students.');
+        }
+
+        async function runMidlineAssessment() {
+            showLoading('Running Midline Assessment...');
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            appState.assessments.midline.forEach(student => {
+                student.completed = true;
+                student.score = Math.floor(Math.random() * 20) + 60;
+            });
+
+            saveAppState();
+            hideLoading();
+            renderAssessments();
+
+            showModal('Assessment Complete', 'Midline assessment has been completed for all students.');
+        }
+
+        async function runEndlineAssessment() {
+            showLoading('Running Endline Assessment...');
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            appState.assessments.endline.forEach(student => {
+                student.completed = true;
+                student.score = Math.floor(Math.random() * 10) + 70;
+            });
+
+            saveAppState();
+            hideLoading();
+            renderAssessments();
+
+            showModal('Assessment Complete', 'Endline assessment has been completed for all students.');
+        }
+
+        // ============================================
+        // AI EDUCATION VIEW
+        // ============================================
+
+        function renderAIEducation() {
+            const checklist = appState.aiEducation.checklist;
+            const metrics = appState.aiEducation.metrics;
+
+            const viewContent = document.getElementById('view-content');
+
+            viewContent.innerHTML = `
+                <div class="max-w-6xl mx-auto">
+                    <!-- Hero Section -->
+                    <div class="bg-gradient-to-r from-indigo-900 via-purple-900 to-pink-900 rounded-2xl p-8 mb-8 text-center shadow-2xl">
+                        <h1 class="text-3xl md:text-4xl font-bold mb-4 text-white">AI in Early Education</h1>
+                        <p class="text-xl text-indigo-200 mb-6">A Comprehensive Guide for Principals and Educators</p>
+                        <div class="flex flex-wrap justify-center gap-4">
+                            <div class="bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full">
+                                <span class="text-white font-semibold">Ages 3-8</span>
+                            </div>
+                            <div class="bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full">
+                                <span class="text-white font-semibold">Ethical Integration</span>
+                            </div>
+                            <div class="bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full">
+                                <span class="text-white font-semibold">Teacher Support</span>
+                            </div>
+                            <div class="bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full">
+                                <span class="text-white font-semibold">Parent Engagement</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Implementation Checklist -->
+                    <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700 mb-8">
+                        <h2 class="text-2xl font-bold mb-6 text-white flex items-center">
+                            <i data-lucide="check-square" class="w-6 h-6 mr-2 text-green-400"></i>
+                            Implementation Checklist
+                        </h2>
+                        <div class="space-y-3">
+                            ${checklist.map(item => `
+                                <div class="flex items-center p-4 rounded-lg bg-gray-700/50">
+                                    <input type="checkbox" id="check-${item.id}" 
+                                        ${item.completed ? 'checked' : ''}
+                                        onchange="toggleChecklistItem(${item.id})"
+                                        class="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500 mr-4">
+                                    <label for="check-${item.id}" class="flex-1 text-gray-300 ${item.completed ? 'line-through' : ''}">
+                                        ${item.text}
+                                    </label>
+                                    ${item.completed ? `
+                                        <i data-lucide="check-circle" class="w-5 h-5 text-green-400"></i>
+                                    ` : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div class="mt-6 p-4 bg-indigo-900/30 rounded-lg">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <div class="text-sm text-gray-400">Progress</div>
+                                    <div class="text-2xl font-bold text-white">
+                                        ${checklist.filter(item => item.completed).length}/${checklist.length}
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="w-32 bg-gray-700 rounded-full h-2">
+                                        <div class="h-full bg-green-500 rounded-full" 
+                                             style="width: ${(checklist.filter(item => item.completed).length / checklist.length) * 100}%">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Success Metrics -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                        <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-green-700">
+                            <div class="text-3xl font-bold text-green-400 mb-2">${metrics.studentEngagement}%</div>
+                            <div class="text-sm text-gray-400">Student Engagement</div>
+                            <div class="mt-2">
+                                <div class="flex justify-between text-xs text-gray-500 mb-1">
+                                    <span>Target: 80%</span>
+                                    <span>${metrics.studentEngagement}%</span>
+                                </div>
+                                <div class="progress-bar bg-gray-700">
+                                    <div class="h-full bg-green-500" style="width: ${metrics.studentEngagement}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-blue-700">
+                            <div class="text-3xl font-bold text-blue-400 mb-2">${metrics.teacherConfidence}%</div>
+                            <div class="text-sm text-gray-400">Teacher Confidence</div>
+                            <div class="mt-2">
+                                <div class="flex justify-between text-xs text-gray-500 mb-1">
+                                    <span>Target: 85%</span>
+                                    <span>${metrics.teacherConfidence}%</span>
+                                </div>
+                                <div class="progress-bar bg-gray-700">
+                                    <div class="h-full bg-blue-500" style="width: ${metrics.teacherConfidence}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-purple-700">
+                            <div class="text-3xl font-bold text-purple-400 mb-2">${metrics.parentSatisfaction}%</div>
+                            <div class="text-sm text-gray-400">Parent Satisfaction</div>
+                            <div class="mt-2">
+                                <div class="flex justify-between text-xs text-gray-500 mb-1">
+                                    <span>Target: 75%</span>
+                                    <span>${metrics.parentSatisfaction}%</span>
+                                </div>
+                                <div class="progress-bar bg-gray-700">
+                                    <div class="h-full bg-purple-500" style="width: ${metrics.parentSatisfaction}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-yellow-700">
+                            <div class="text-3xl font-bold text-yellow-400 mb-2">${metrics.learningAcceleration}%</div>
+                            <div class="text-sm text-gray-400">Learning Acceleration</div>
+                            <div class="mt-2">
+                                <div class="flex justify-between text-xs text-gray-500 mb-1">
+                                    <span>Target: 40%</span>
+                                    <span>${metrics.learningAcceleration}%</span>
+                                </div>
+                                <div class="progress-bar bg-gray-700">
+                                    <div class="h-full bg-yellow-500" style="width: ${metrics.learningAcceleration}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Resource Center -->
+                    <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700">
+                        <h2 class="text-2xl font-bold mb-6 text-white">Resource Center</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div class="p-4 rounded-lg bg-indigo-900/20 hover:bg-indigo-900/30 transition cursor-pointer" onclick="downloadResource('guide')">
+                                <div class="flex items-center mb-3">
+                                    <i data-lucide="book-open" class="w-6 h-6 text-indigo-400 mr-2"></i>
+                                    <h3 class="font-semibold text-white">Implementation Guide</h3>
+                                </div>
+                                <p class="text-sm text-gray-400">Complete step-by-step guide for AI integration</p>
+                            </div>
+                            
+                            <div class="p-4 rounded-lg bg-purple-900/20 hover:bg-purple-900/30 transition cursor-pointer" onclick="downloadResource('lesson-plans')">
+                                <div class="flex items-center mb-3">
+                                    <i data-lucide="file-text" class="w-6 h-6 text-purple-400 mr-2"></i>
+                                    <h3 class="font-semibold text-white">Lesson Plans</h3>
+                                </div>
+                                <p class="text-sm text-gray-400">AI-integrated lesson plans for different age groups</p>
+                            </div>
+                            
+                            <div class="p-4 rounded-lg bg-pink-900/20 hover:bg-pink-900/30 transition cursor-pointer" onclick="downloadResource('parent-kit')">
+                                <div class="flex items-center mb-3">
+                                    <i data-lucide="users" class="w-6 h-6 text-pink-400 mr-2"></i>
+                                    <h3 class="font-semibold text-white">Parent Communication Kit</h3>
+                                </div>
+                                <p class="text-sm text-gray-400">Templates and resources for parent engagement</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Call to Action -->
+                    <div class="mt-8 text-center">
+                        <button onclick="startAIWorkshop()" class="px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:opacity-90 transition shadow-lg">
+                            <i data-lucide="rocket" class="w-5 h-5 inline mr-2"></i>
+                            Start AI Workshop
+                        </button>
+                        <p class="text-gray-400 mt-4 text-sm">Schedule a workshop for your teaching staff</p>
+                    </div>
+                </div>
+            `;
+
             lucide.createIcons();
+        }
+
+        function toggleChecklistItem(id) {
+            const item = appState.aiEducation.checklist.find(item => item.id === id);
+            if (item) {
+                item.completed = !item.completed;
+                saveAppState();
+                renderAIEducation();
+
+                if (item.completed) {
+                    showModal('Progress Updated', `"${item.text}" marked as completed!`);
+                }
+            }
+        }
+
+        function downloadResource(type) {
+            const resources = {
+                'guide': 'AI_Implementation_Guide.pdf',
+                'lesson-plans': 'AI_Lesson_Plans.zip',
+                'parent-kit': 'Parent_Communication_Kit.docx'
+            };
+
+            showModal('Download Started', `Your download of "${resources[type]}" has started.`);
+        }
+
+        function startAIWorkshop() {
+            showModal('Workshop Scheduled', 'An AI workshop has been scheduled for next Monday at 3:00 PM. Invitations have been sent to all staff members.');
+        }
+
+        // ============================================
+        // CHART FUNCTIONS
+        // ============================================
+
+        function initializeDashboardChart(chartData) {
+            const ctx = document.getElementById('dashboard-chart');
+            if (!ctx) return;
+
+            if (appState.charts.dashboard) {
+                appState.charts.dashboard.destroy();
+            }
+
+            appState.charts.dashboard = new Chart(ctx, {
+                type: 'bar',
+                data: chartData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: { color: '#9ca3af' },
+                            grid: { color: '#374151' }
+                        },
+                        x: {
+                            ticks: { color: '#9ca3af' },
+                            grid: { display: false }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+
+        function changeChartType(type) {
+            if (appState.charts.dashboard) {
+                appState.charts.dashboard.destroy();
+            }
+
+            const ctx = document.getElementById('dashboard-chart');
+            const chartData = appState.progress.chart;
+
+            appState.charts.dashboard = new Chart(ctx, {
+                type: type,
+                data: chartData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: type !== 'pie' ? {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: { color: '#9ca3af' },
+                            grid: { color: '#374151' }
+                        },
+                        x: {
+                            ticks: { color: '#9ca3af' },
+                            grid: { display: false }
+                        }
+                    } : {},
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: { color: '#9ca3af' }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ============================================
+        // EXPORT & UTILITY FUNCTIONS
+        // ============================================
+
+        function exportData() {
+            const data = {
+                students: appState.students,
+                staff: appState.staff,
+                assessments: appState.assessments,
+                progress: appState.progress,
+                aiEducation: appState.aiEducation,
+                stats: appState.stats,
+                exportDate: new Date().toISOString()
+            };
+
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `eduai_export_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showModal('Export Complete', 'All data has been exported successfully.');
+        }
+
+        function exportToCSV(data, filename) {
+            const headers = Object.keys(data[0]);
+            const csvContent = [
+                headers.join(','),
+                ...data.map(row => headers.map(header => JSON.stringify(row[header])).join(','))
+            ].join('\n');
+
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function generateReport() {
+            showModal('Report Generated', 'A comprehensive report has been generated and is available for download.');
+        }
+
+        function generateStudentReport(studentId) {
+            const student = appState.students.find(s => s.id === studentId);
+            if (!student) return;
+
+            showModal('Student Report', `A detailed report for ${student.name} has been generated and emailed to the administrators.`);
+        }
+
+        function toggleDarkMode() {
+            const html = document.documentElement;
+            const isDark = html.classList.contains('dark');
+
+            if (isDark) {
+                html.classList.remove('dark');
+                showModal('Theme Changed', 'Switched to light mode.');
+            } else {
+                html.classList.add('dark');
+                showModal('Theme Changed', 'Switched to dark mode.');
+            }
+        }
+
+        function showStatistics() {
+            const modal = document.getElementById('statistics-modal');
+            const content = document.getElementById('statistics-content');
+
+            const stats = appState.stats;
+            const totalStudents = stats.total_students;
+            const avgScore = stats.academic_performance;
+            const avgAttendance = stats.attendance_rate;
+            const totalStaff = stats.total_staff;
+
+            const gradeDistribution = {};
+            appState.students.forEach(student => {
+                gradeDistribution[student.grade] = (gradeDistribution[student.grade] || 0) + 1;
+            });
+
+            content.innerHTML = `
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="p-4 bg-gray-700/50 rounded-lg">
+                        <div class="text-sm text-gray-400">Total Students</div>
+                        <div class="text-2xl font-bold text-white">${totalStudents}</div>
+                    </div>
+                    <div class="p-4 bg-gray-700/50 rounded-lg">
+                        <div class="text-sm text-gray-400">Average Score</div>
+                        <div class="text-2xl font-bold text-white">${avgScore}%</div>
+                    </div>
+                    <div class="p-4 bg-gray-700/50 rounded-lg">
+                        <div class="text-sm text-gray-400">Average Attendance</div>
+                        <div class="text-2xl font-bold text-white">${avgAttendance}%</div>
+                    </div>
+                    <div class="p-4 bg-gray-700/50 rounded-lg">
+                        <div class="text-sm text-gray-400">Total Staff</div>
+                        <div class="text-2xl font-bold text-white">${totalStaff}</div>
+                    </div>
+                </div>
+                
+                <div class="bg-gray-700/50 p-4 rounded-lg">
+                    <h4 class="font-semibold text-white mb-3">Grade Distribution</h4>
+                    <div class="space-y-2">
+                        ${Object.entries(gradeDistribution).map(([grade, count]) => `
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-300">Grade ${grade}</span>
+                                <div class="flex items-center">
+                                    <div class="w-32 bg-gray-600 rounded-full h-2 mr-3">
+                                        <div class="h-full bg-indigo-500 rounded-full" 
+                                             style="width: ${(count / totalStudents) * 100}%">
+                                        </div>
+                                    </div>
+                                    <span class="text-white font-medium">${count}</span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                
+                <div class="bg-gray-700/50 p-4 rounded-lg">
+                    <h4 class="font-semibold text-white mb-3">Performance Categories</h4>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="text-center">
+                            <div class="text-lg font-bold text-green-400">
+                                ${appState.students.filter(s => s.overall_score >= 80).length}
+                            </div>
+                            <div class="text-sm text-gray-400">Excellent (80-100%)</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-lg font-bold text-yellow-400">
+                                ${appState.students.filter(s => s.overall_score >= 60 && s.overall_score < 80).length}
+                            </div>
+                            <div class="text-sm text-gray-400">Good (60-79%)</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-lg font-bold text-red-400">
+                                ${appState.students.filter(s => s.overall_score < 60).length}
+                            </div>
+                            <div class="text-sm text-gray-400">Needs Help (Below 60%)</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-gray-700/50 p-4 rounded-lg">
+                    <h4 class="font-semibold text-white mb-3">Attendance Analysis</h4>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="text-center">
+                            <div class="text-lg font-bold text-green-400">
+                                ${appState.students.filter(s => s.attendance >= 90).length}
+                            </div>
+                            <div class="text-sm text-gray-400">Excellent (90-100%)</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-lg font-bold text-yellow-400">
+                                ${appState.students.filter(s => s.attendance >= 75 && s.attendance < 90).length}
+                            </div>
+                            <div class="text-sm text-gray-400">Good (75-89%)</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-lg font-bold text-red-400">
+                                ${appState.students.filter(s => s.attendance < 75).length}
+                            </div>
+                            <div class="text-sm text-gray-400">Concern (Below 75%)</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeStatisticsModal() {
+            document.getElementById('statistics-modal').classList.add('hidden');
+        }
+
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+
+        window.onload = function () {
+            // Initialize Lucide icons
+            lucide.createIcons();
+
+            // Setup mobile menu
             setupMobileMenu();
+
+            // Initialize app state
             initializeAppState();
+
+            // Set initial view
             changeView('dashboard');
+
+            // Initialize the active navigation state
+            document.getElementById(`nav-${appState.currentView}`).classList.add('bg-indigo-700', 'text-white', 'main-shadow');
+            document.getElementById(`mobile-nav-${appState.currentView}`).classList.add('bg-indigo-700', 'text-white', 'main-shadow');
+
+            // Close modals on escape key
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    closeModal();
+                    closeStudentDetailModal();
+                    closeStatisticsModal();
+                    document.getElementById('student-detail-modal').classList.add('hidden');
+                    document.getElementById('add-staff-form').classList.add('hidden');
+                }
+            });
+
+            // Initial notification
+            setTimeout(() => {
+                if (appState.students.length === 0) {
+                    showModal('Welcome to EduAI Dashboard', 'Get started by adding students and staff to your dashboard. All data is stored locally in your browser.');
+                }
+            }, 1000);
         };
     </script>
 </body>
